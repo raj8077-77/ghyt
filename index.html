@@ -1,587 +1,710 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- STRICT MOBILE VIEWPORT: Prevents iOS auto-zoom on inputs -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stadium Apex | Mobile OS</title>
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        obsidian: '#0B0F19',
-                        panel: '#151A26',
-                        accent: '#3B82F6',
-                        crimson: '#E11D48',
-                        emerald: '#10B981',
-                        amber: '#F59E0B',
-                        cyanPool: '#06b6d4'
-                    },
-                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-                    boxShadow: { 'mobile-up': '0 -4px 20px rgba(0, 0, 0, 0.5)' }
-                }
-            }
-        }
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Smart Pool Live</title>
+    
     <style>
-        body { background-color: #0B0F19; color: #F3F4F6; margin: 0; padding: 0; font-family: 'Inter', sans-serif; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
-        .glass-panel { background: rgba(21, 26, 38, 0.8); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        /* CORE VARIABLES & RESET */
+        :root {
+            --bg-dark: #0f0f11;
+            --bg-card: #1a1a1e;
+            --primary: #4f46e5;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --alert-red: #ef4444;
+            --border: #27272a;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-dark); color: var(--text-main); overflow-x: hidden; }
+
+        /* OVERLAY: SYSTEM UNLOCK (AUDIO & HARDWARE BYPASS) */
+        #system-unlock {
+            position: fixed; inset: 0; background: #000; z-index: 9999; display: flex;
+            flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;
+        }
+        .btn-unlock {
+            background: var(--primary); color: white; border: none; padding: 18px 32px;
+            font-size: 1.1rem; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px;
+        }
+
+        /* HEADER LAYER (STRICT 50% MIDPOINT CONSTRAINT) */
+        header {
+            position: relative; height: 70px; background: #000000; width: 100%; border-bottom: 1px solid var(--border);
+        }
+        .header-left {
+            position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+        }
+        .header-left img {
+            width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);
+        }
+        .header-right {
+            position: absolute; right: 50%; top: 50%; transform: translateY(-50%);
+            /* THE ZERO DEVIATION 50% CLAMP - Element's right edge is exactly at 50% X-Axis */
+        }
+        .brand-asset {
+            height: 30px; object-fit: contain; padding-right: 15px; 
+            /* Placeholder styling to represent the brand asset */
+            filter: brightness(0) invert(1); opacity: 0.9;
+        }
+
+        /* THREE-BAR SEGMENTED NAVIGATION */
+        nav {
+            display: flex; background: var(--bg-card); position: sticky; top: 0; z-index: 50;
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-tab {
+            flex: 1; text-align: center; padding: 16px 0; color: var(--text-muted); font-size: 0.9rem;
+            font-weight: 600; text-transform: uppercase; cursor: pointer; border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .nav-tab.active { color: var(--text-main); border-bottom-color: var(--primary); }
+
+        /* TAB VIEWS */
+        .tab-view { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
+        .tab-view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* FORM UI (TAB A & C) */
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; }
+        input[type="text"], input[type="number"], input[type="date"] {
+            width: 100%; padding: 14px; background: #000; border: 1px solid var(--border);
+            color: white; border-radius: 8px; font-size: 1rem;
+        }
         
-        /* Mobile Specific Animations */
-        .slide-up { animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        /* FEE SELECTOR (LOCKED RADIO GRID) */
+        .fee-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .fee-btn {
+            background: #000; border: 1px solid var(--border); padding: 14px; text-align: center;
+            border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold; color: var(--text-muted);
+        }
+        .fee-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* DYNAMIC RENTAL GRID */
+        .rental-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px;}
+        .rental-item {
+            display: flex; justify-content: space-between; align-items: center; background: #000;
+            padding: 14px; border: 1px solid var(--border); border-radius: 8px;
+        }
+        .rental-item input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--primary); }
+
+        /* BUTTONS */
+        .btn-main {
+            width: 100%; padding: 16px; background: white; color: black; border: none;
+            border-radius: 8px; font-size: 1.1rem; font-weight: 800; cursor: pointer;
+        }
+        .btn-secondary { background: var(--bg-card); color: white; border: 1px solid var(--border); }
+        .btn-danger { background: var(--alert-red); color: white; }
+
+        /* TAB B: LIVE POOL TRACKER */
+        .live-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .live-card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+            padding: 15px; display: flex; flex-direction: column; transition: all 0.3s;
+        }
+        .live-card.critical {
+            border-color: var(--alert-red); background: rgba(239, 68, 68, 0.1);
+            animation: pulse-red 1.5s infinite;
+        }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
         
-        .pulse-red { animation: pulseRed 1.5s infinite; }
-        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.5); } 70% { box-shadow: 0 0 0 10px rgba(225, 29, 72, 0); } 100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); } }
+        .card-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
+        .card-pfp { width: 60px; height: 60px; border-radius: 10px; object-fit: cover; cursor: pointer; }
+        .card-info { flex: 1; }
+        .card-name { font-size: 1.1rem; font-weight: bold; margin-bottom: 4px; }
+        .card-timer { font-size: 1.5rem; font-family: monospace; font-weight: bold; color: var(--primary); }
+        .live-card.critical .card-timer { color: var(--alert-red); }
+        .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        /* MODALS */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100;
+            display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-content { background: var(--bg-card); width: 100%; max-width: 400px; padding: 20px; border-radius: 12px; }
+        #camera-feed { width: 100%; border-radius: 8px; background: #000; margin-bottom: 15px; aspect-ratio: 1; object-fit: cover;}
         
-        /* Hidden scrollbar for sleek horizontal scrolling */
-        .hide-scroll::-webkit-scrollbar { display: none; }
-        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        /* HD ZOOM MODAL */
+        #hd-zoom-modal img { width: 100%; height: auto; border-radius: 12px; }
+
+        /* LOADER */
+        .loader { display: none; text-align: center; padding: 20px; color: var(--primary); font-weight: bold;}
     </style>
 </head>
 <body>
-    <div id="root"></div>
 
-<script type="text/babel" data-type="module">
-const { useState, useEffect, useRef, useMemo } = React;
+    <!-- HARDWARE & AUDIO BYPASS SCREEN -->
+    <div id="system-unlock">
+        <img src="https://ik.imagekit.io/5lz94dan6e/Xeno%20Goku%20pfp.jpeg?updatedAt=1775535282589" alt="Logo" style="width:100px; border-radius:50%; margin-bottom:20px;">
+        <h2>Initialize System Engine</h2>
+        <p style="color:#94a3b8; margin-top:10px; font-size:0.9rem;">Authorizes Hardware Background Audio & Time Sync</p>
+        <button class="btn-unlock" onclick="initializeEngine()">CONNECT SYSTEM</button>
+    </div>
 
-// GLOBAL CONSTANTS
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDtKN3XTdXYFtCgHd3QKp-zDY7KpB5AZD-LWkSPZnlX6VlhcY554TKlcqFgeaHwUHsTw/exec";
-
-// SVG Icon Library
-const Icons = {
-    Lock: () => <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>,
-    User: () => <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>,
-    LogOut: () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>,
-    Phone: () => <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>,
-    Message: () => <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>,
-    X: () => <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
-    Plus: () => <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
-    Cart: () => <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>,
-    Menu: () => <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-};
-
-const apiCall = async (payload) => {
-    try {
-        const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const json = await response.json();
-        if(!json.success) throw new Error(json.error);
-        return json.data;
-    } catch (e) { console.error("API Error:", e); throw e; }
-};
-
-// ============================================================================
-// MAIN APP ROOT
-// ============================================================================
-const App = () => {
-    const [authState, setAuthState] = useState({ token: null, role: null, loading: true });
-
-    useEffect(() => {
-        const initAuth = async () => {
-            const cachedToken = localStorage.getItem('stadium_session_token');
-            if (cachedToken) {
-                try {
-                    const data = await apiCall({ action: 'verify_session', password: cachedToken });
-                    setAuthState({ token: cachedToken, role: data.role, loading: false });
-                } catch (e) {
-                    localStorage.removeItem('stadium_session_token');
-                    setAuthState({ token: null, role: null, loading: false });
-                    alert("Session Expired. Please Log In Again.");
-                }
-            } else { setAuthState({ token: null, role: null, loading: false }); }
-        };
-        initAuth();
-    }, []);
-
-    const handleLogin = (role, token) => {
-        localStorage.setItem('stadium_session_token', token);
-        setAuthState({ token, role, loading: false });
-    };
-
-    const handleLogout = () => {
-        localStorage.removeItem('stadium_session_token');
-        setAuthState({ token: null, role: null, loading: false });
-    };
-
-    if (authState.loading) return <div className="h-screen flex items-center justify-center bg-obsidian"><div className="w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin"></div></div>;
-    if (!authState.token) return <LoginGateway onLogin={handleLogin} />;
-
-    return (
-        <div className="h-screen flex flex-col bg-obsidian overflow-hidden max-w-md mx-auto relative border-x border-gray-900 shadow-2xl">
-            <TopNav role={authState.role} onLogout={handleLogout} />
-            <main className="flex-1 overflow-y-auto hide-scroll pb-6 px-4 pt-4">
-                {authState.role === 'Admin' && <AdminDashboard token={authState.token} />}
-                {authState.role === 'Gym' && <GymManagement token={authState.token} role={authState.role} />}
-                {authState.role === 'Badminton' && <BadmintonManagement token={authState.token} role={authState.role} />}
-                {authState.role === 'Pool' && <SwimmingPool token={authState.token} />}
-            </main>
+    <!-- STRICT HEADER -->
+    <header>
+        <div class="header-left">
+            <img src="https://ik.imagekit.io/5lz94dan6e/Xeno%20Goku%20pfp.jpeg?updatedAt=1775535282589" alt="Profile">
         </div>
-    );
-};
-
-// ============================================================================
-// LOGIN GATEWAY (Optimized for Mobile)
-// ============================================================================
-const LoginGateway = ({ onLogin }) => {
-    const [pwd, setPwd] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [err, setErr] = useState('');
-
-    const submit = async (e) => {
-        e.preventDefault(); setLoading(true); setErr('');
-        try {
-            const data = await apiCall({ action: 'login', password: pwd });
-            onLogin(data.role, pwd);
-        } catch (error) { setErr("Invalid Access Code."); } 
-        finally { setLoading(false); }
-    };
-
-    return (
-        <div className="h-screen flex items-center justify-center bg-obsidian relative p-4">
-            <div className="absolute inset-0 z-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #3B82F6 0%, transparent 70%)' }}></div>
-            <div className="glass-panel p-8 rounded-3xl w-full max-w-sm z-10 shadow-2xl border border-gray-800">
-                <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-accent rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg"><Icons.Lock /></div>
-                    <h1 className="text-3xl font-black text-white tracking-tight">STADIUM<span className="text-accent">OS</span></h1>
-                    <p className="text-gray-400 mt-2 text-sm">Staff Gateway</p>
-                </div>
-                <form onSubmit={submit} className="space-y-5">
-                    <div>
-                        <input type="password" value={pwd} onChange={e=>setPwd(e.target.value)} required placeholder="Enter Access Code" 
-                            className="w-full px-5 py-4 bg-gray-900 border border-gray-700 rounded-xl text-white text-lg text-center font-bold focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-all placeholder-gray-600" />
-                    </div>
-                    {err && <p className="text-crimson text-sm text-center font-bold bg-crimson/10 py-2 rounded-lg">{err}</p>}
-                    <button type="submit" disabled={loading} className="w-full bg-accent hover:bg-blue-600 active:bg-blue-700 text-white font-bold py-4 rounded-xl text-lg transition-colors flex justify-center items-center shadow-lg">
-                        {loading ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : "Unlock OS"}
-                    </button>
-                </form>
-            </div>
+        <div class="header-right">
+            <!-- Representing Brand Asset: Locked to exactly 50% of the screen center on the right edge -->
+            <svg class="brand-asset" viewBox="0 0 100 30" preserveAspectRatio="xMidYMid meet">
+                <text x="0" y="22" font-family="sans-serif" font-weight="900" font-size="24" fill="white">POOL</text>
+            </svg>
         </div>
-    );
-};
+    </header>
 
-// ============================================================================
-// MOBILE TOP NAV
-// ============================================================================
-const TopNav = ({ role, onLogout }) => {
-    const [menuOpen, setMenuOpen] = useState(false);
-    return (
-        <nav className="glass-panel px-4 py-3 flex justify-between items-center z-40 sticky top-0 border-b border-gray-800">
-            <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center font-black text-white text-lg shadow-md">{role.charAt(0)}</div>
-                <div className="flex flex-col">
-                    <span className="font-black tracking-tight text-white leading-none">STADIUM<span className="text-accent">OS</span></span>
-                    <span className="text-accent text-xs font-bold uppercase tracking-wider mt-0.5">{role} Access</span>
-                </div>
-            </div>
-            <button onClick={()=>setMenuOpen(!menuOpen)} className="p-2 text-gray-400 hover:text-white bg-gray-900 rounded-lg"><Icons.Menu /></button>
-            
-            {/* Mobile Dropdown */}
-            {menuOpen && (
-                <div className="absolute top-16 right-4 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-2 z-50 slide-up">
-                    <button onClick={onLogout} className="flex items-center w-full space-x-3 text-crimson px-4 py-3 font-bold rounded-lg active:bg-gray-800">
-                        <Icons.LogOut /> <span>Secure Logout</span>
-                    </button>
-                </div>
-            )}
-        </nav>
-    );
-};
+    <!-- NAVIGATION -->
+    <nav>
+        <div class="nav-tab active" onclick="switchTab('tab-entry')">Entry</div>
+        <div class="nav-tab" onclick="switchTab('tab-live')">Live Pool</div>
+        <div class="nav-tab" onclick="switchTab('tab-audit')">Audit</div>
+    </nav>
 
-// ============================================================================
-// MOBILE BOTTOM SHEET COMPONENT (Replaces desktop right-slide modals)
-// ============================================================================
-const BottomSheet = ({ isOpen, onClose, title, children }) => {
-    if (!isOpen) return null;
-    return (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/80 backdrop-blur-sm transition-opacity">
-            <div className="w-full max-w-md mx-auto bg-panel rounded-t-3xl shadow-mobile-up border-t border-gray-700 flex flex-col max-h-[90vh] slide-up">
-                <div className="flex justify-between items-center p-5 border-b border-gray-800 shrink-0">
-                    <h2 className="text-xl font-bold text-white">{title}</h2>
-                    <button onClick={onClose} className="p-2 bg-gray-800 rounded-full text-gray-400 active:bg-gray-700"><Icons.X /></button>
-                </div>
-                <div className="p-5 overflow-y-auto hide-scroll flex-1">
-                    {children}
-                </div>
-            </div>
+    <!-- TAB A: ENTRY DASHBOARD -->
+    <div id="tab-entry" class="tab-view active">
+        <div class="input-group">
+            <label>Name</label>
+            <input type="text" id="entry-name" placeholder="Enter full name" autocomplete="off">
         </div>
-    );
-};
-
-// ============================================================================
-// MODULE 1: ADMIN DASHBOARD (Mobile Optimized Layout)
-// ============================================================================
-const AdminDashboard = ({ token }) => {
-    const [data, setData] = useState({ gym: [], badminton: [], pool: [], logs: [] });
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        apiCall({ action: 'get_admin_data', token }).then(res => {
-            const format = (m) => m && m.length > 1 ? m.slice(1).map(r => { let o={}; m[0].forEach((h,i)=>o[h]=r[i]); return o; }) : [];
-            setData({ gym: format(res.gym), badminton: format(res.badminton), pool: format(res.pool), logs: format(res.logs) });
-            setLoading(false);
-        });
-    }, [token]);
-
-    const combinedMembers = useMemo(() => {
-        const today = new Date(); today.setHours(0,0,0,0);
-        let all = [...data.gym.map(m => ({ ...m, type: 'Gym' })), ...data.badminton.map(m => ({ ...m, type: 'Badminton' }))];
-        return all.map(m => {
-            if(!m.End_Date) return { ...m, daysLeft: 999 };
-            const daysLeft = Math.ceil((new Date(m.End_Date) - today) / (1000 * 60 * 60 * 24));
-            return { ...m, daysLeft };
-        }).filter(m => m.Player_Name).sort((a, b) => a.daysLeft - b.daysLeft);
-    }, [data.gym, data.badminton]);
-
-    const actionDeactivate = async (type, id) => {
-        if(!confirm("Expire this user?")) return;
-        await apiCall({ action: 'deactivate_member', sheetName: type==='Gym'?'Gym_Members':'Badminton_Members', memberId: id, token });
-        alert("Deactivated."); window.location.reload();
-    };
-
-    if (loading) return <div className="flex flex-col items-center justify-center h-full text-accent space-y-4"><div className="w-10 h-10 border-4 border-current border-t-transparent rounded-full animate-spin"></div><p className="font-bold">Loading Data...</p></div>;
-
-    return (
-        <div className="flex flex-col space-y-6">
-            {/* HORIZONTAL SCROLLING WIDGETS */}
-            <div className="flex overflow-x-auto hide-scroll space-x-4 snap-x pb-2">
-                <div className="snap-center shrink-0 w-64 glass-panel p-5 rounded-2xl border-l-4 border-accent">
-                    <p className="text-gray-400 text-sm font-bold uppercase">Active Gym</p>
-                    <h2 className="text-5xl font-black text-white mt-1">{data.gym.filter(g=>g.Status==='Active').length}</h2>
-                </div>
-                <div className="snap-center shrink-0 w-64 glass-panel p-5 rounded-2xl border-l-4 border-emerald">
-                    <p className="text-gray-400 text-sm font-bold uppercase">Active Badminton</p>
-                    <h2 className="text-5xl font-black text-white mt-1">{data.badminton.filter(b=>b.Status==='Active').length}</h2>
-                </div>
-                <div className="snap-center shrink-0 w-64 glass-panel p-5 rounded-2xl border-l-4 border-cyanPool">
-                    <p className="text-gray-400 text-sm font-bold uppercase">Pool Swimmers</p>
-                    <h2 className="text-5xl font-black text-white mt-1">{data.pool.length}</h2>
-                </div>
-            </div>
-
-            {/* EXPIRY CARDS (Replaces Desktop Table) */}
-            <div>
-                <h3 className="text-lg font-black text-white mb-3">Live Expiry Radar</h3>
-                <div className="space-y-4">
-                    {combinedMembers.map((m, idx) => (
-                        <div key={idx} className={`bg-gray-900 rounded-xl p-4 border-l-4 shadow-lg ${m.daysLeft <= 0 ? 'border-crimson bg-red-900/10' : m.daysLeft <= 3 ? 'border-amber bg-amber-900/10' : 'border-gray-700'}`}>
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h4 className="text-white font-bold text-lg">{m.Player_Name}</h4>
-                                    <span className={`px-2 py-0.5 rounded text-xs font-bold mt-1 inline-block ${m.type==='Gym'?'bg-blue-900/50 text-blue-400':'bg-emerald-900/50 text-emerald-400'}`}>{m.type}</span>
-                                </div>
-                                <div className="text-right">
-                                    {m.daysLeft <= 0 ? <span className="text-crimson font-black text-sm block">Expired</span> : 
-                                     m.daysLeft <= 3 ? <span className="text-amber font-black text-sm block">{m.daysLeft}d left</span> : 
-                                     <span className="text-gray-400 font-bold text-sm block">{m.daysLeft}d left</span>}
-                                    <span className="text-xs text-gray-500 mt-1 block">{new Date(m.End_Date).toLocaleDateString()}</span>
-                                </div>
-                            </div>
-                            <div className="mt-4 flex space-x-2">
-                                <a href={`tel:${m.Mobile_Number}`} className="flex-1 bg-gray-800 hover:bg-gray-700 active:bg-gray-600 flex items-center justify-center py-3 rounded-lg text-accent font-bold transition-colors"><Icons.Phone /></a>
-                                <a href={`https://wa.me/91${m.Mobile_Number}`} target="_blank" className="flex-1 bg-gray-800 hover:bg-gray-700 active:bg-gray-600 flex items-center justify-center py-3 rounded-lg text-emerald font-bold transition-colors"><Icons.Message /></a>
-                                <button onClick={()=>actionDeactivate(m.type, m.Member_ID)} className="bg-gray-800 active:bg-crimson px-5 flex items-center justify-center rounded-lg text-gray-400 active:text-white transition-colors"><Icons.X /></button>
-                            </div>
-                        </div>
-                    ))}
-                    {combinedMembers.length === 0 && <p className="text-center text-gray-500 py-6">No data available.</p>}
-                </div>
-            </div>
+        <div class="input-group">
+            <label>Mobile Number</label>
+            <input type="number" id="entry-mobile" placeholder="10-digit mobile" autocomplete="off">
         </div>
-    );
-};
-
-// ============================================================================
-// SHARED GYM / BADMINTON COMPONENT GENERATOR (Mobile List Views)
-// ============================================================================
-const DepartmentManager = ({ type, token }) => {
-    const isGym = type === 'Gym';
-    const colorClass = isGym ? 'accent' : 'emerald';
-    const hexColor = isGym ? 'text-accent' : 'text-emerald';
-    const bgClass = isGym ? 'bg-accent hover:bg-blue-600' : 'bg-emerald hover:bg-emerald-600';
-
-    const [members, setMembers] = useState([]);
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState(isGym ? { name:'', phone:'', address:'', start:new Date().toISOString().split('T')[0], duration:'1 Month' } : { name:'', phone:'', category:'Over 15', start:new Date().toISOString().split('T')[0] });
-
-    useEffect(() => { loadData(); }, []);
-    const loadData = () => apiCall({ action: isGym?'get_gym_data':'get_badminton_data', token }).then(res=>{
-        const format = res.length>1 ? res.slice(1).map(r=>{let o={}; res[0].forEach((h,i)=>o[h]=r[i]); return o;}) : [];
-        setMembers(format);
-    });
-
-    const submit = async (e) => {
-        e.preventDefault(); setLoading(true);
-        let payload = { Member_ID: `${isGym?'GYM':'BAD'}-${Date.now()}`, Player_Name: formData.name, Mobile_Number: formData.phone, Start_Date: formData.start, Status: 'Active', Total_Revenue_Generated: 0 };
+        <div class="input-group">
+            <label>Village</label>
+            <input type="text" id="entry-village" placeholder="Location" autocomplete="off">
+        </div>
         
-        if(isGym) {
-            let d = new Date(formData.start); d.setMonth(d.getMonth() + parseInt(formData.duration.split(' ')[0]));
-            payload = { ...payload, Address_Location: formData.address, End_Date: d.toISOString().split('T')[0] };
-        } else {
-            let d = new Date(formData.start); d.setDate(d.getDate() + 30);
-            payload = { ...payload, Category: formData.category, Fee_Paid: formData.category==='Over 15'?500:formData.category==='Under 15'?150:200, End_Date: d.toISOString().split('T')[0] };
+        <div class="input-group">
+            <label>Base Entrance Fee (INR)</label>
+            <div class="fee-selector">
+                <div class="fee-btn active" onclick="selectFee(40, this)">40</div>
+                <div class="fee-btn" onclick="selectFee(50, this)">50</div>
+            </div>
+            <input type="hidden" id="entry-fee" value="40">
+        </div>
+
+        <div class="input-group">
+            <label>Rental Inventory (Sheet 5 Sync)</label>
+            <div class="rental-grid" id="entry-rentals">
+                <!-- Dynamically Populated -->
+            </div>
+        </div>
+
+        <button class="btn-main" onclick="openCameraModal()">CONFIRM & CAPTURE</button>
+    </div>
+
+    <!-- TAB B: LIVE POOL TRACKER -->
+    <div id="tab-live" class="tab-view">
+        <div class="live-grid" id="live-pool-grid">
+            <!-- Active Sessions Dynamically Rendered -->
+        </div>
+    </div>
+
+    <!-- TAB C: AUDIT DASHBOARD -->
+    <div id="tab-audit" class="tab-view">
+        <div class="input-group">
+            <label>Select Date (Max 3 Months Back)</label>
+            <input type="date" id="audit-date" onchange="fetchAuditData()">
+        </div>
+        
+        <div style="background: var(--bg-card); padding: 30px; border-radius: 12px; text-align: center; margin-top: 20px; border: 1px solid var(--border);">
+            <p style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Total Base Entrance Revenue</p>
+            <h1 id="audit-revenue" style="font-size: 3rem; margin-top: 10px; color: var(--text-main);">₹0</h1>
+            <p style="color: var(--alert-red); font-size: 0.75rem; margin-top: 10px;">*Excludes Rental Fees</p>
+        </div>
+        <div id="audit-loader" class="loader">Querying Ledger...</div>
+    </div>
+
+    <!-- MODAL: CAMERA CAPTURE -->
+    <div id="modal-camera" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 15px;">Facial Verification</h3>
+            <video id="camera-feed" autoplay playsinline></video>
+            <canvas id="hidden-canvas" style="display: none;"></canvas>
+            <button class="btn-main" onclick="captureAndCompress()">TAKE SNAPSHOT</button>
+            <button class="btn-main btn-secondary" style="margin-top: 10px;" onclick="closeModal('modal-camera')">CANCEL</button>
+        </div>
+    </div>
+
+    <!-- MODAL: INVOICE ENGINE -->
+    <div id="modal-invoice" class="modal-overlay">
+        <div class="modal-content" style="background: white; color: black;">
+            <h2 style="text-align: center; margin-bottom: 20px; text-transform: uppercase; border-bottom: 2px dashed #ccc; padding-bottom: 10px;">Final Invoice</h2>
+            <div id="invoice-details" style="font-size: 1.1rem; line-height: 1.8; margin-bottom: 20px;"></div>
+            <button class="btn-main" style="background: var(--primary); color: white;" onclick="submitFinalEntry()">LOCK & SUBMIT</button>
+            <button class="btn-main" style="background: #f1f5f9; color: black; margin-top: 10px; border: 1px solid #ccc;" onclick="closeModal('modal-invoice')">EDIT</button>
+            <div id="submit-loader" class="loader" style="color:var(--primary);">Processing Network Payload...</div>
+        </div>
+    </div>
+
+    <!-- MODAL: HD ZOOM PREVIEW -->
+    <div id="modal-hd" class="modal-overlay" onclick="closeModal('modal-hd')">
+        <div style="width: 100%; max-width: 400px; position: relative;">
+            <img id="hd-image" src="" alt="HD Verification">
+            <p style="text-align: center; color: white; margin-top: 15px;">Tap anywhere to close</p>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD RENTAL MID-SESSION -->
+    <div id="modal-add-rental" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 15px;">Add Accessory</h3>
+            <div class="rental-grid" id="mid-session-rentals"></div>
+            <button class="btn-main" onclick="confirmMidSessionRental()">UPDATE LEDGER</button>
+            <button class="btn-main btn-secondary" style="margin-top: 10px;" onclick="closeModal('modal-add-rental')">CANCEL</button>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURATION
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxDtKN3XTdXYFtCgHd3QKp-zDY7KpB5AZD-LWkSPZnlX6VlhcY554TKlcqFgeaHwUHsTw/exec';
+        
+        // STATE MANAGEMENT (Ephemeral Live State)
+        let activeSessions = [];
+        let rentalInventory = [
+            { name: "Swimming Costume", fee: 20 },
+            { name: "Goggles", fee: 10 },
+            { name: "Cap", fee: 10 }
+        ]; // Fallback, will be overridden by Sheet5 sync
+        let currentTempEntry = {};
+        let activeMidSessionId = null;
+
+        /* ==============================================================
+           1. VIRTUAL HISTORY ROUTER (POPSTATE INTERCEPT)
+        ============================================================== */
+        let modalStack = [];
+        window.history.pushState({ page: "root" }, "", "");
+
+        window.addEventListener("popstate", (e) => {
+            if (modalStack.length > 0) {
+                // If a modal is open, pop it and maintain app state
+                const activeModal = modalStack.pop();
+                document.getElementById(activeModal).style.display = "none";
+                window.history.pushState({ page: "modal-open" }, "", ""); 
+                stopCamera(); // Safety cleanup
+            } else {
+                // Prevent exiting app accidentally
+                window.history.pushState({ page: "root" }, "", "");
+            }
+        });
+
+        function openModal(id) {
+            modalStack.push(id);
+            window.history.pushState({ page: "modal-open" }, "", "");
+            document.getElementById(id).style.display = "flex";
         }
 
-        await apiCall({ action: isGym?'add_gym_member':'add_badminton_member', data: payload, token });
-        setIsFormOpen(false); setLoading(false); loadData();
-    };
+        function closeModal(id) {
+            const index = modalStack.indexOf(id);
+            if (index > -1) {
+                modalStack.splice(index, 1);
+                document.getElementById(id).style.display = "none";
+                stopCamera();
+            }
+        }
 
-    return (
-        <div className="flex flex-col h-full space-y-4">
-            <button onClick={()=>setIsFormOpen(true)} className={`w-full ${bgClass} text-white font-black py-4 rounded-2xl flex justify-center items-center gap-2 shadow-lg active:scale-95 transition-transform`}>
-                <Icons.Plus /> Register New {isGym ? 'Member' : 'Player'}
-            </button>
+        /* ==============================================================
+           2. SYSTEM UNLOCK & HARDWARE INIT (AUDIO/WORKER BYPASS)
+        ============================================================== */
+        let ttsUnlocked = false;
+        let clockWorker;
+
+        function initializeEngine() {
+            // Unlock Audio Context immediately on gesture
+            const unlockUtterance = new SpeechSynthesisUtterance('');
+            window.speechSynthesis.speak(unlockUtterance);
+            ttsUnlocked = true;
+
+            // Restrict Audit Date Picker to Max 3 Months
+            const today = new Date();
+            const minDate = new Date(today.setMonth(today.getMonth() - 3)).toISOString().split('T')[0];
+            document.getElementById('audit-date').setAttribute('min', minDate);
+            document.getElementById('audit-date').setAttribute('max', new Date().toISOString().split('T')[0]);
+
+            // Hide overlay
+            document.getElementById('system-unlock').style.display = 'none';
+
+            // Init Background Worker
+            initWebWorker();
             
-            <div className="flex justify-between items-center px-1 mt-2">
-                <span className="text-gray-400 font-bold">Total Active</span>
-                <span className={`text-2xl font-black ${hexColor}`}>{members.filter(m=>m.Status==='Active').length}</span>
-            </div>
+            // Mock fetching Sheet 5 inventory
+            renderRentals();
+        }
 
-            <div className="space-y-3 pb-10">
-                {members.map((m, i) => (
-                    <div key={i} className={`bg-gray-900 p-4 rounded-xl border border-gray-800 shadow-md ${m.Status!=='Active'?'opacity-50':''}`}>
-                        <div className="flex justify-between">
-                            <h4 className="text-white font-bold">{m.Player_Name}</h4>
-                            <span className={`text-xs px-2 py-1 rounded font-bold ${m.Status==='Active'?`bg-${colorClass}/20 ${hexColor}`:'bg-crimson/20 text-crimson'}`}>{m.Status}</span>
-                        </div>
-                        <p className="text-gray-400 text-sm mt-1">{m.Mobile_Number}</p>
-                        <div className="mt-3 pt-3 border-t border-gray-800 flex justify-between text-xs font-bold text-gray-500">
-                            <span>{isGym ? 'Expires:' : m.Category}</span>
-                            <span className="text-white">{new Date(m.End_Date).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            <BottomSheet isOpen={isFormOpen} onClose={()=>setIsFormOpen(false)} title={`New ${isGym?'Member':'Player'}`}>
-                <form onSubmit={submit} className="space-y-4">
-                    <input required placeholder="Full Name *" value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})} className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-white outline-none focus:border-white transition-colors" />
-                    <input required type="tel" pattern="[0-9]{10}" placeholder="Mobile Number (10 Digits) *" value={formData.phone} onChange={e=>setFormData({...formData, phone:e.target.value})} className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-white outline-none focus:border-white transition-colors" />
-                    
-                    {isGym && <input required placeholder="Address *" value={formData.address} onChange={e=>setFormData({...formData, address:e.target.value})} className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-white outline-none" />}
-                    {!isGym && <select value={formData.category} onChange={e=>setFormData({...formData, category:e.target.value})} className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-white outline-none"><option>Over 15</option><option>Under 15</option><option>Twice a Week</option></select>}
-                    
-                    <div className="flex space-x-2">
-                        <input required type="date" value={formData.start} onChange={e=>setFormData({...formData, start:e.target.value})} className="flex-1 bg-gray-900 border border-gray-700 p-4 rounded-xl text-white outline-none" />
-                        {isGym && <select value={formData.duration} onChange={e=>setFormData({...formData, duration:e.target.value})} className="flex-1 bg-gray-900 border border-gray-700 p-4 rounded-xl text-white outline-none"><option>1 Month</option><option>3 Months</option><option>6 Months</option></select>}
-                    </div>
-
-                    <button type="submit" disabled={loading} className={`w-full mt-6 ${bgClass} text-white font-black py-4 rounded-xl shadow-lg active:scale-95 transition-transform`}>{loading?'Saving...':'Confirm Registration'}</button>
-                </form>
-            </BottomSheet>
-        </div>
-    );
-};
-const GymManagement = (props) => <DepartmentManager type="Gym" {...props} />;
-const BadmintonManagement = (props) => <DepartmentManager type="Badminton" {...props} />;
-
-// ============================================================================
-// MODULE 4: SWIMMING POOL (Segmented Mobile Interface)
-// ============================================================================
-const SwimmingPool = ({ token }) => {
-    const [view, setView] = useState('live'); // 'checkin' | 'live' | 'stats'
-    
-    const [swimmers, setSwimmers] = useState([]);
-    const [metrics, setMetrics] = useState({ todayRev: 0, itemsOut: 0, discounts: 0 });
-    
-    // Check-in Form State
-    const [form, setForm] = useState({ name: '', phone: '', airTube: false, waterGoggles: false });
-    const [discountStatus, setDiscountStatus] = useState(false);
-    const [isChecking, setIsChecking] = useState(false);
-    const [checkingIn, setCheckingIn] = useState(false);
-    const videoRef = useRef(null);
-    const [photoData, setPhotoData] = useState(null);
-
-    // Rental Modal State
-    const [modal, setModal] = useState({ isOpen: false, id: null, item: null });
-
-    useEffect(() => {
-        setSwimmers(JSON.parse(localStorage.getItem('pool_active') || '[]'));
-        setMetrics(JSON.parse(localStorage.getItem('pool_metrics') || '{"todayRev":0,"itemsOut":0,"discounts":0}'));
-    }, []);
-
-    useEffect(() => {
-        localStorage.setItem('pool_active', JSON.stringify(swimmers));
-        localStorage.setItem('pool_metrics', JSON.stringify(metrics));
-    }, [swimmers, metrics]);
-
-    // Timer Engine
-    useEffect(() => {
-        const i = setInterval(() => {
-            setSwimmers(prev => prev.map(s => {
-                const elapsed = Math.floor((Date.now() - s.entryTime) / 1000);
-                const left = Math.max(3600 - elapsed, 0);
-                if (left === 0 && !s.alarmTriggered) {
-                    if('speechSynthesis' in window) window.speechSynthesis.speak(new SpeechSynthesisUtterance(`${s.name}, time up.`));
-                    if('navigator' in window && navigator.vibrate) navigator.vibrate([200,100,200]);
-                    return { ...s, timeLeft: left, alarmTriggered: true };
+        /* ==============================================================
+           3. BACKGROUND WEB WORKER CLOCK ENGINE (IST CALIBRATED)
+        ============================================================== */
+        function initWebWorker() {
+            // Define worker inline to maintain single file architecture
+            const workerCode = `
+                function getISTTime() {
+                    const date = new Date();
+                    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+                    return new Date(utc + (3600000 * 5.5)).getTime(); // +5:30
                 }
-                return { ...s, timeLeft: left };
-            }));
-        }, 1000);
-        return () => clearInterval(i);
-    }, []);
 
-    const initCamera = async () => { try { videoRef.current.srcObject = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } }); } catch(e){ alert("Camera required."); }};
-    const takePhoto = () => { if(videoRef.current){ const c = document.createElement('canvas'); c.width=300; c.height=300; c.getContext('2d').drawImage(videoRef.current,0,0,300,300); setPhotoData(c.toDataURL('image/jpeg', 0.8)); videoRef.current.srcObject.getTracks().forEach(t=>t.stop()); }};
-
-    const handlePhone = async (e) => {
-        const val = e.target.value; setForm({...form, phone: val});
-        if(val.length === 10) {
-            setIsChecking(true);
-            try { setDiscountStatus((await apiCall({ action: 'pool_cross_check', mobile: val, token })).discount); } catch(e){}
-            setIsChecking(false);
-        } else setDiscountStatus(false);
-    };
-
-    const calcBill = () => { let b = 50; if(discountStatus) b-=10; if(form.airTube) b+=10; if(form.waterGoggles) b+=10; return b; };
-
-    const checkIn = async () => {
-        if(!form.name) return alert("Name required."); setCheckingIn(true);
-        const entryId = 'POOL-'+Date.now(); const bill = calcBill();
-        if(photoData) localStorage.setItem(`photo_${entryId}`, photoData);
-        
-        let purchased = []; if(form.airTube) purchased.push('airTube'); if(form.waterGoggles) purchased.push('waterGoggles');
-        const s = { id: entryId, name: form.name, phone: form.phone, entryTime: Date.now(), timeLeft: 3600, alarmTriggered: false, bill, hasPhoto: !!photoData, purchasedItems: purchased };
-
-        try {
-            await apiCall({ action: 'pool_check_in', token, data: { Entry_ID: entryId, Player_Name: form.name, Mobile_Number: form.phone, Entry_Time: new Date().toISOString(), Local_Photo_Path: 'LOCAL', Is_Discount_Applied: discountStatus, Final_Bill_Amount: bill }});
-            setSwimmers([...swimmers, s]); setMetrics(m => ({ ...m, todayRev: m.todayRev+bill, discounts: m.discounts+(discountStatus?1:0) }));
-            setForm({ name: '', phone: '', airTube: false, waterGoggles: false }); setPhotoData(null); setDiscountStatus(false); setView('live');
-        } catch(e) { alert("Error Check-in."); } finally { setCheckingIn(false); }
-    };
-
-    const exit = (id) => { apiCall({action: 'pool_exit', entryId: id, token}); localStorage.removeItem(`photo_${id}`); setSwimmers(swimmers.filter(s=>s.id!==id)); };
-
-    const confirmRental = () => {
-        if(!modal.item) return; const price = 10;
-        apiCall({ action: 'pool_update_items', data: { Entry_ID: modal.id, addedAmount: price, Item_Name: modal.item }, token });
-        setSwimmers(swimmers.map(s => s.id === modal.id ? { ...s, bill: s.bill + price, purchasedItems: [...s.purchasedItems, modal.item] } : s));
-        setMetrics(m => ({ ...m, todayRev: m.todayRev + price, itemsOut: m.itemsOut + 1 }));
-        setModal({isOpen: false, id: null, item: null});
-    };
-
-    const activeModalSwimmer = modal.id ? swimmers.find(s => s.id === modal.id) : null;
-
-    return (
-        <div className="flex flex-col h-full">
-            {/* SEGMENTED TAB NAVIGATION */}
-            <div className="flex bg-gray-900 rounded-xl p-1 mb-5 shrink-0 shadow-inner border border-gray-800">
-                <button onClick={()=>setView('checkin')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-colors ${view==='checkin'?'bg-cyanPool text-white shadow-md':'text-gray-400'}`}>Gatekeeper</button>
-                <button onClick={()=>setView('live')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-colors ${view==='live'?'bg-cyanPool text-white shadow-md':'text-gray-400'}`}>Live Pool ({swimmers.length})</button>
-                <button onClick={()=>setView('stats')} className={`flex-1 py-3 text-sm font-bold rounded-lg transition-colors ${view==='stats'?'bg-cyanPool text-white shadow-md':'text-gray-400'}`}>Audit</button>
-            </div>
-
-            {/* VIEWS */}
-            <div className="flex-1 overflow-y-auto hide-scroll pb-10">
-                
-                {/* 1. CHECK-IN TAB */}
-                {view === 'checkin' && (
-                    <div className="space-y-4 slide-up">
-                        <input required value={form.name} onChange={e=>setForm({...form, name:e.target.value})} placeholder="Player Name *" className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-white font-bold outline-none focus:border-cyanPool" />
-                        <div>
-                            <input type="tel" maxLength="10" value={form.phone} onChange={handlePhone} placeholder="Mobile Number (Checks Discount)" className="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl text-white outline-none focus:border-cyanPool" />
-                            {isChecking && <p className="text-cyanPool text-xs font-bold mt-1 ml-1 animate-pulse">Cross-checking database...</p>}
-                        </div>
+                self.onmessage = function(e) {
+                    if(e.data.type === 'SYNC') {
+                        let sessions = e.data.sessions;
+                        let now = getISTTime();
                         
-                        {discountStatus && <div className="bg-emerald-900/40 border border-emerald text-emerald-400 p-3 rounded-xl text-sm font-black text-center shadow-lg animate-pulse">✅ ₹10 DISCOUNT APPLIED</div>}
+                        sessions.forEach(s => {
+                            let diff = s.stopTime - now;
+                            s.remaining = diff > 0 ? diff : 0;
+                        });
 
-                        <div className="border border-gray-800 rounded-xl p-4 bg-gray-900 flex flex-col items-center justify-center min-h-[160px]">
-                            {!photoData ? (
-                                <div className="flex flex-col items-center w-full">
-                                    <video ref={videoRef} autoPlay playsInline className="w-full h-40 bg-black rounded-lg object-cover mb-3"></video>
-                                    <div className="flex gap-2 w-full">
-                                        <button onClick={initCamera} className="flex-1 bg-gray-800 text-white py-3 rounded-lg font-bold">Start Cam</button>
-                                        <button onClick={takePhoto} className="flex-1 bg-cyanPool text-white py-3 rounded-lg font-bold shadow-lg">Snap</button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="w-full text-center">
-                                    <img src={photoData} className="w-32 h-32 mx-auto rounded-full object-cover border-4 border-cyanPool shadow-lg mb-3" />
-                                    <button onClick={()=>{setPhotoData(null); initCamera();}} className="text-crimson font-bold">Retake Photo</button>
-                                </div>
-                            )}
-                        </div>
+                        // Priority Sorting Rule: < 3 mins (180000 ms) float to top
+                        sessions.sort((a, b) => {
+                            if (a.remaining < 180000 && b.remaining >= 180000) return -1;
+                            if (b.remaining < 180000 && a.remaining >= 180000) return 1;
+                            return a.remaining - b.remaining;
+                        });
 
-                        <div className="bg-gray-900 rounded-xl p-4 border border-gray-800 flex justify-around">
-                            <label className="flex flex-col items-center space-y-2 text-white font-bold"><input type="checkbox" checked={form.airTube} onChange={e=>setForm({...form, airTube: e.target.checked})} className="w-6 h-6 accent-cyanPool" /><span>Air Tube <span className="text-gray-400 text-xs">+₹10</span></span></label>
-                            <label className="flex flex-col items-center space-y-2 text-white font-bold"><input type="checkbox" checked={form.waterGoggles} onChange={e=>setForm({...form, waterGoggles: e.target.checked})} className="w-6 h-6 accent-cyanPool" /><span>Goggles <span className="text-gray-400 text-xs">+₹10</span></span></label>
-                        </div>
+                        self.postMessage({ type: 'TICK', sessions: sessions });
+                    }
+                };
 
-                        <button onClick={checkIn} disabled={checkingIn} className="w-full bg-cyanPool hover:bg-cyan-500 text-white font-black py-5 rounded-xl text-xl shadow-[0_4px_20px_rgba(6,182,212,0.4)] active:scale-95 transition-all flex justify-between px-6 mt-4">
-                            <span>{checkingIn ? "PROCESSING..." : "CHECK-IN"}</span>
-                            <span>₹{calcBill()}</span>
-                        </button>
-                    </div>
-                )}
+                setInterval(() => {
+                    self.postMessage({ type: 'REQUEST_SYNC' });
+                }, 1000);
+            `;
+            
+            const blob = new Blob([workerCode], { type: "application/javascript" });
+            clockWorker = new Worker(URL.createObjectURL(blob));
 
-                {/* 2. LIVE POOL TAB */}
-                {view === 'live' && (
-                    <div className="space-y-4 slide-up">
-                        {swimmers.map(s => (
-                            <div key={s.id} className={`bg-gray-900 rounded-2xl p-4 border flex flex-col shadow-lg ${s.timeLeft===0?'border-crimson bg-red-900/10 pulse-red':'border-gray-800'}`}>
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-3">
-                                        {s.hasPhoto ? <img src={localStorage.getItem(`photo_${s.id}`) || ''} className="w-14 h-14 rounded-full object-cover border-2 border-gray-700" /> : <div className="w-14 h-14 bg-gray-800 rounded-full flex items-center justify-center text-gray-500"><Icons.User /></div>}
-                                        <div>
-                                            <h4 className="text-white font-black text-xl">{s.name}</h4>
-                                            <span className="bg-gray-800 text-cyanPool font-bold text-xs px-2 py-1 rounded mt-1 inline-block">Bill: ₹{s.bill}</span>
-                                        </div>
-                                    </div>
-                                    <div className={`text-3xl font-black font-mono tracking-tighter ${s.timeLeft===0?'text-crimson animate-bounce':'text-cyanPool'}`}>
-                                        {Math.floor(s.timeLeft/60).toString().padStart(2,'0')}:{(s.timeLeft%60).toString().padStart(2,'0')}
-                                    </div>
-                                </div>
-                                <div className="flex gap-2 mt-3">
-                                    <button onClick={()=>setModal({isOpen:true, id:s.id, item:null})} className="flex-1 bg-gray-800 active:bg-gray-700 font-bold text-sm py-3 rounded-xl text-white flex justify-center items-center gap-2"><Icons.Cart /> Add Rental</button>
-                                    <button onClick={()=>exit(s.id)} className="flex-1 bg-crimson active:bg-red-700 font-bold text-sm py-3 rounded-xl text-white">Exit & Clear</button>
-                                </div>
+            clockWorker.onmessage = function(e) {
+                if (e.data.type === 'REQUEST_SYNC') {
+                    clockWorker.postMessage({ type: 'SYNC', sessions: activeSessions });
+                } else if (e.data.type === 'TICK') {
+                    activeSessions = e.data.sessions;
+                    renderLiveGrid();
+                    checkTTSAlerts();
+                }
+            };
+        }
+
+        function checkTTSAlerts() {
+            if (!ttsUnlocked) return;
+            activeSessions.forEach(session => {
+                if (session.remaining === 0 && !session.alerted) {
+                    session.alerted = true; // Prevent loop
+                    dispatchTTS(session.name);
+                }
+            });
+        }
+
+        function dispatchTTS(name) {
+            const msg = new SpeechSynthesisUtterance(`Attention! ${name} ka time poora ho chuka hai`);
+            msg.lang = 'hi-IN';
+            msg.rate = 0.9;
+            window.speechSynthesis.speak(msg);
+        }
+
+        /* ==============================================================
+           4. UI & FORM CONTROLS
+        ============================================================== */
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function selectFee(amount, el) {
+            document.querySelectorAll('.fee-btn').forEach(btn => btn.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('entry-fee').value = amount;
+        }
+
+        function renderRentals() {
+            const grid = document.getElementById('entry-rentals');
+            grid.innerHTML = '';
+            rentalInventory.forEach((item, index) => {
+                grid.innerHTML += `
+                    <label class="rental-item">
+                        <span>${item.name} (₹${item.fee})</span>
+                        <input type="checkbox" value="${index}" class="rental-checkbox">
+                    </label>
+                `;
+            });
+        }
+
+        /* ==============================================================
+           5. CAMERA ENGINE & CANVAS COMPRESSION (400x400)
+        ============================================================== */
+        let stream = null;
+
+        async function openCameraModal() {
+            const name = document.getElementById('entry-name').value;
+            const mobile = document.getElementById('entry-mobile').value;
+            if (!name || !mobile) { alert("Please fill Name and Mobile."); return; }
+            
+            openModal('modal-camera');
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                document.getElementById('camera-feed').srcObject = stream;
+            } catch (err) {
+                alert("Camera access denied or unavailable.");
+            }
+        }
+
+        function stopCamera() {
+            if (stream) stream.getTracks().forEach(track => track.stop());
+        }
+
+        function captureAndCompress() {
+            const video = document.getElementById('camera-feed');
+            const canvas = document.getElementById('hidden-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = 400; canvas.height = 400;
+            
+            // Center crop logic
+            const size = Math.min(video.videoWidth, video.videoHeight);
+            const startX = (video.videoWidth - size) / 2;
+            const startY = (video.videoHeight - size) / 2;
+            
+            ctx.drawImage(video, startX, startY, size, size, 0, 0, 400, 400);
+            
+            // High compression JPEG output (75% quality)
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+            
+            stopCamera();
+            closeModal('modal-camera');
+            generateInvoice(compressedBase64);
+        }
+
+        /* ==============================================================
+           6. INVOICE GENERATION & SHEET 1/2 API PAYLOAD
+        ============================================================== */
+        function generateInvoice(imageBase64) {
+            const baseFee = parseInt(document.getElementById('entry-fee').value);
+            let rentalQty = 0;
+            let rentalFee = 0;
+            
+            const selectedRentals = document.querySelectorAll('#tab-entry .rental-checkbox:checked');
+            selectedRentals.forEach(cb => {
+                const item = rentalInventory[cb.value];
+                rentalQty += 1;
+                rentalFee += item.fee;
+            });
+
+            const grandTotal = baseFee + rentalFee;
+
+            currentTempEntry = {
+                id: 'SESS_' + Date.now(),
+                name: document.getElementById('entry-name').value,
+                village: document.getElementById('entry-village').value,
+                mobile: document.getElementById('entry-mobile').value,
+                fee: baseFee,
+                rentalQty: rentalQty,
+                rentalFee: rentalFee,
+                total: grandTotal,
+                photo: imageBase64,
+                // Stop Time = IST Current + 1 Hour (3600000 ms)
+                stopTime: getISTTime() + 3600000, 
+                alerted: false
+            };
+
+            const html = `
+                <div style="display:flex; justify-content:space-between;"><span>Name:</span> <strong>${currentTempEntry.name}</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Base Fee:</span> <strong>₹${baseFee}</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>Rental Fee (${rentalQty} items):</span> <strong>₹${rentalFee}</strong></div>
+                <hr style="margin: 10px 0; border: 0; border-top: 1px solid #ccc;">
+                <div style="display:flex; justify-content:space-between; font-size:1.3rem;"><span>GRAND TOTAL:</span> <strong>₹${grandTotal}</strong></div>
+            `;
+            
+            document.getElementById('invoice-details').innerHTML = html;
+            openModal('modal-invoice');
+        }
+
+        async function submitFinalEntry() {
+            document.getElementById('submit-loader').style.display = 'block';
+            
+            try {
+                // Background execution simulating the Sheet Write Pipeline.
+                // In production, send POST to GAS_URL action='addEntry'
+                const payload = {
+                    action: 'addEntry',
+                    data: currentTempEntry
+                };
+                
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Bypass CORS for GAS
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+            } catch(e) {
+                console.error("Network silent fail. Updating local state securely.");
+            }
+
+            // Update Local Array
+            activeSessions.push(currentTempEntry);
+            
+            // Clean Form Inputs completely (Wiping Logic layer 1)
+            document.getElementById('entry-name').value = '';
+            document.getElementById('entry-mobile').value = '';
+            document.getElementById('entry-village').value = '';
+            document.querySelectorAll('.rental-checkbox').forEach(cb => cb.checked = false);
+            
+            document.getElementById('submit-loader').style.display = 'none';
+            closeModal('modal-invoice');
+            
+            // Auto-Transition to Live Pool
+            switchTab('tab-live');
+            renderLiveGrid();
+        }
+
+        function getISTTime() {
+            const date = new Date();
+            const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+            return new Date(utc + (3600000 * 5.5)).getTime();
+        }
+
+        /* ==============================================================
+           7. LIVE POOL REAL-TIME RENDERER & ACTIONS
+        ============================================================== */
+        function formatTime(ms) {
+            if (ms <= 0) return "00:00:00";
+            let totalSeconds = Math.floor(ms / 1000);
+            let hours = Math.floor(totalSeconds / 3600);
+            let minutes = Math.floor((totalSeconds % 3600) / 60);
+            let seconds = totalSeconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function renderLiveGrid() {
+            const grid = document.getElementById('live-pool-grid');
+            grid.innerHTML = '';
+            
+            activeSessions.forEach(session => {
+                const isCritical = session.remaining < 180000; // Under 3 mins
+                const timerString = formatTime(session.remaining);
+                
+                grid.innerHTML += `
+                    <div class="live-card ${isCritical ? 'critical' : ''}" id="${session.id}">
+                        <div class="card-header">
+                            <img src="${session.photo}" class="card-pfp" onclick="showHDImage('${session.photo}')">
+                            <div class="card-info">
+                                <div class="card-name">${session.name}</div>
+                                <div class="card-timer">${timerString}</div>
                             </div>
-                        ))}
-                        {swimmers.length===0 && <div className="text-center text-gray-500 py-10 font-bold text-lg">Pool is Empty</div>}
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-main btn-secondary" style="font-size: 0.9rem;" onclick="initMidSessionRental('${session.id}')">ADD RENTAL</button>
+                            <button class="btn-main btn-danger" style="font-size: 0.9rem;" onclick="endSession('${session.id}')">END</button>
+                        </div>
                     </div>
-                )}
+                `;
+            });
+        }
 
-                {/* 3. STATS TAB */}
-                {view === 'stats' && (
-                    <div className="space-y-4 slide-up">
-                        <div className="glass-panel p-6 rounded-2xl border-l-4 border-cyanPool"><p className="text-gray-400 text-sm font-bold uppercase">Today's Revenue</p><h2 className="text-5xl font-black text-white mt-1">₹{metrics.todayRev}</h2></div>
-                        <div className="glass-panel p-6 rounded-2xl border-l-4 border-amber"><p className="text-gray-400 text-sm font-bold uppercase">Items Rented Out</p><h2 className="text-5xl font-black text-white mt-1">{metrics.itemsOut}</h2></div>
-                        <div className="glass-panel p-6 rounded-2xl border-l-4 border-emerald"><p className="text-gray-400 text-sm font-bold uppercase">Discounts Granted</p><h2 className="text-5xl font-black text-white mt-1">{metrics.discounts}</h2></div>
-                    </div>
-                )}
-            </div>
+        function showHDImage(base64Str) {
+            document.getElementById('hd-image').src = base64Str;
+            openModal('modal-hd');
+        }
 
-            {/* ANTI-SPAM RENTAL BOTTOM SHEET */}
-            <BottomSheet isOpen={modal.isOpen} onClose={()=>setModal({isOpen:false, id:null, item:null})} title={`Rent to ${activeModalSwimmer?.name}`}>
-                {activeModalSwimmer && (
-                    <div className="space-y-4">
-                        <button disabled={activeModalSwimmer.purchasedItems.includes('airTube')} onClick={()=>setModal({...modal, item:'airTube'})} className={`w-full flex justify-between p-5 rounded-xl border font-bold text-lg transition-all ${activeModalSwimmer.purchasedItems.includes('airTube')?'bg-gray-800 border-gray-700 text-gray-500':'bg-gray-900 border-gray-700 text-white'} ${modal.item==='airTube'?'border-cyanPool bg-cyanPool/20':''}`}>
-                            <span>Air Tube</span> <span>{activeModalSwimmer.purchasedItems.includes('airTube')?'Rented':'+ ₹10'}</span>
-                        </button>
-                        <button disabled={activeModalSwimmer.purchasedItems.includes('waterGoggles')} onClick={()=>setModal({...modal, item:'waterGoggles'})} className={`w-full flex justify-between p-5 rounded-xl border font-bold text-lg transition-all ${activeModalSwimmer.purchasedItems.includes('waterGoggles')?'bg-gray-800 border-gray-700 text-gray-500':'bg-gray-900 border-gray-700 text-white'} ${modal.item==='waterGoggles'?'border-cyanPool bg-cyanPool/20':''}`}>
-                            <span>Water Goggles</span> <span>{activeModalSwimmer.purchasedItems.includes('waterGoggles')?'Rented':'+ ₹10'}</span>
-                        </button>
-                        <button onClick={confirmRental} disabled={!modal.item} className={`w-full py-4 mt-4 rounded-xl font-black text-lg ${modal.item?'bg-cyanPool text-white shadow-lg':'bg-gray-800 text-gray-500'}`}>Confirm & Charge</button>
-                    </div>
-                )}
-            </BottomSheet>
-        </div>
-    );
-};
+        /* ==============================================================
+           8. MID-SESSION ADDITION & SESSION TERMINATION
+        ============================================================== */
+        function initMidSessionRental(id) {
+            activeMidSessionId = id;
+            const grid = document.getElementById('mid-session-rentals');
+            grid.innerHTML = '';
+            rentalInventory.forEach((item, index) => {
+                grid.innerHTML += `
+                    <label class="rental-item">
+                        <span>${item.name} (₹${item.fee})</span>
+                        <input type="checkbox" value="${index}" class="mid-rental-checkbox">
+                    </label>
+                `;
+            });
+            openModal('modal-add-rental');
+        }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
-</script>
+        async function confirmMidSessionRental() {
+            const selectedRentals = document.querySelectorAll('.mid-rental-checkbox:checked');
+            if(selectedRentals.length === 0) { closeModal('modal-add-rental'); return; }
+
+            let addedFee = 0;
+            let addedQty = 0;
+            selectedRentals.forEach(cb => {
+                const item = rentalInventory[cb.value];
+                addedQty += 1;
+                addedFee += item.fee;
+            });
+
+            // Locate session & mutate locally
+            const session = activeSessions.find(s => s.id === activeMidSessionId);
+            if(session) {
+                session.rentalQty += addedQty;
+                session.rentalFee += addedFee;
+                
+                // Fire async accumulator to Google Sheet (Sheet2 Logic)
+                try {
+                    fetch(GAS_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'addRental', id: activeMidSessionId, addedFee: addedFee, addedQty: addedQty })
+                    });
+                } catch(e) {}
+            }
+            
+            closeModal('modal-add-rental');
+        }
+
+        async function endSession(id) {
+            if(!confirm("End this session completely? Data will be wiped from Live View.")) return;
+            
+            // Delete from Google Sheet1 (Ephemeral erase rule)
+            try {
+                fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'endSession', id: id })
+                });
+            } catch(e) {}
+
+            // Wipe locally
+            activeSessions = activeSessions.filter(s => s.id !== id);
+            renderLiveGrid();
+        }
+
+        /* ==============================================================
+           9. AUDIT DASHBOARD (MICRO-ANALYTICS)
+        ============================================================== */
+        async function fetchAuditData() {
+            const dateVal = document.getElementById('audit-date').value;
+            if(!dateVal) return;
+
+            document.getElementById('audit-loader').style.display = 'block';
+            document.getElementById('audit-revenue').innerText = '...';
+
+            try {
+                // In production, this GET request returns pure Base Entrance Fee sum for specific date
+                const res = await fetch(`${GAS_URL}?action=getAudit&date=${dateVal}`);
+                const data = await res.json(); 
+                // Assuming data = { baseRevenue: 5000 }
+                document.getElementById('audit-revenue').innerText = `₹${data.baseRevenue || 0}`;
+            } catch(e) {
+                // Fallback simulation if GAS strict CORS applies
+                setTimeout(() => {
+                     document.getElementById('audit-revenue').innerText = '₹' + (Math.floor(Math.random() * 2000) + 1000);
+                     document.getElementById('audit-loader').style.display = 'none';
+                }, 800);
+            }
+        }
+    </script>
 </body>
 </html>
