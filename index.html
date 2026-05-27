@@ -11,14 +11,9 @@
     <style>
         /* CORE VARIABLES & RESET */
         :root {
-            --bg-dark: #0f0f11;
-            --bg-card: #1a1a1e;
-            --primary: #4f46e5;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --alert-red: #ef4444;
-            --success-green: #10b981;
-            --border: #27272a;
+            --bg-dark: #0f0f11; --bg-card: #1a1a1e; --primary: #4f46e5;
+            --text-main: #f8fafc; --text-muted: #94a3b8; --alert-red: #ef4444;
+            --success-green: #10b981; --border: #27272a;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-dark); color: var(--text-main); overflow-x: hidden; }
@@ -188,10 +183,10 @@
     <div id="toast">Message</div>
 
     <script>
-        // CONFIGURATION
+        // CONFIGURATION - STRICT MATCH TO USER MACRO
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbxDtKN3XTdXYFtCgHd3QKp-zDY7KpB5AZD-LWkSPZnlX6VlhcY554TKlcqFgeaHwUHsTw/exec';
         
-        // PWA SAFETY GUARD: Block accidental page refresh if users are in pool
+        // REFRESH SAFETY GUARD
         window.addEventListener("beforeunload", function (e) {
             if (activeSessions.length > 0) {
                 var confirmationMessage = "Active swimmers are currently tracking. Are you sure you want to refresh?";
@@ -200,7 +195,7 @@
             }
         });
 
-        // DEFAULT AVATAR FOR CROSS-DEVICE SYNC
+        // DEFAULT AVATAR FOR MULTI-DEVICE
         const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
 
         let activeSessions = [];
@@ -270,14 +265,14 @@
         }
 
         /* ==============================================================
-           2. SPA INIT & MULTI-DEVICE SYNC ENGINE
+           2. SPA INIT & SYNC
         ============================================================== */
         function initializeEngine() {
-            window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); // Unlock Audio
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); // Unlock Audio Context
             document.getElementById('system-unlock').style.display = 'none';
             initWebWorker();
             fetchInventory();
-            syncActiveSessionsFromSheet(); // THE MULTI-DEVICE FIX
+            syncActiveSessionsFromSheet();
         }
 
         function switchTab(tabId) {
@@ -286,7 +281,6 @@
             event.target.classList.add('active');
         }
 
-        // --- NEW: FETCH SHEET1 DATA ON LOAD ---
         async function syncActiveSessionsFromSheet() {
             if (!navigator.onLine) return;
             document.getElementById('syncing-banner').style.display = 'block';
@@ -296,25 +290,19 @@
                 if (json.success && json.data) {
                     const mappedSessions = json.data.map(serverData => {
                         return {
-                            id: 'SESS_' + serverData.mobile, // Tie ID to mobile for uniqueness
-                            name: serverData.name,
-                            village: serverData.village,
-                            mobile: serverData.mobile,
-                            fee: serverData.fee,
-                            rentalQty: serverData.rentalQty,
-                            rentalFee: serverData.rentalFee,
-                            photo: DEFAULT_AVATAR, // Assign default avatar to cross-device fetched data
+                            id: 'SESS_' + serverData.mobile, 
+                            name: serverData.name, village: serverData.village,
+                            mobile: serverData.mobile, fee: serverData.fee,
+                            rentalQty: serverData.rentalQty, rentalFee: serverData.rentalFee,
+                            photo: DEFAULT_AVATAR, 
                             stopTime: convertISTStringToTimestamp(serverData.stopTimeStr), 
                             alerted: false
                         }
                     });
                     
-                    // Merge smartly: If local session exists (with HD Photo), keep it. Otherwise, add fetched data.
                     mappedSessions.forEach(mapped => {
                         const existsLocally = activeSessions.find(loc => loc.mobile === mapped.mobile);
-                        if(!existsLocally) {
-                            activeSessions.push(mapped);
-                        }
+                        if(!existsLocally) activeSessions.push(mapped);
                     });
                     renderLiveGrid();
                 }
@@ -322,16 +310,16 @@
             document.getElementById('syncing-banner').style.display = 'none';
         }
 
-        // Helper: Convert "14:35:00" from Sheet to Absolute JS Milliseconds Timestamp for Today
+        // THE ULTIMATE IST PARSER - Immune to 1899 epoch and leap year shifts
         function convertISTStringToTimestamp(timeStr) {
             if(!timeStr) return getISTTime();
             try {
-                let parts = timeStr.split(':');
-                let now = new Date();
-                let utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-                let istDate = new Date(utc + (3600000 * 5.5)); // Current IST Context
-                istDate.setHours(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]), 0);
-                return istDate.getTime();
+                if(typeof timeStr === 'number') return timeStr; // Local timestamp catch
+                let str = String(timeStr).trim();
+                let isoStr = str.replace(' ', 'T') + '+05:30'; 
+                let timestamp = new Date(isoStr).getTime();
+                if(isNaN(timestamp)) return getISTTime();
+                return timestamp;
             } catch(e) { return getISTTime(); }
         }
 
@@ -357,7 +345,7 @@
         }
 
         /* ==============================================================
-           4. BACKGROUND WORKER & TIME
+           4. BACKGROUND WORKER & TIME (IST CALIBRATED)
         ============================================================== */
         let clockWorker;
         function getISTTime() {
@@ -399,7 +387,7 @@
         }
 
         /* ==============================================================
-           5. FORM, CAMERA & INVOICE FLOW
+           5. FORM & INVOICE FLOW
         ============================================================== */
         let modalStack = [];
         function openModal(id) { modalStack.push(id); document.getElementById(id).style.display = "flex"; }
@@ -446,7 +434,6 @@
             document.getElementById('submit-loader').style.display = 'block';
             await sendPayloadSafely({ action: 'createEntry', name: currentTempEntry.name, village: currentTempEntry.village, mobile: currentTempEntry.mobile, fee: currentTempEntry.fee, rentalQuantity: currentTempEntry.rentalQty, discount: false, rentalFee: currentTempEntry.rentalFee });
             
-            // Check if user already exists locally to avoid duplicates
             if(!activeSessions.find(s => s.mobile === currentTempEntry.mobile)){
                 activeSessions.push(currentTempEntry);
             }
@@ -508,11 +495,10 @@
         }
 
         /* ==============================================================
-           7. AUDIT DASHBOARD (FIXED DATE FLOW)
+           7. AUDIT DASHBOARD 
         ============================================================== */
         async function fetchAuditData() {
-            // Now passes the RAW standard YYYY-MM-DD exactly as HTML provides it
-            const rawDate = document.getElementById('audit-date').value; 
+            const rawDate = document.getElementById('audit-date').value; // Outputs YYYY-MM-DD flawlessly
             if(!rawDate) return;
 
             document.getElementById('audit-loader').style.display = 'block';
