@@ -37,7 +37,7 @@
             margin-left: 12px; object-fit: cover;
         }
         .brand-anchor-boundary {
-            position: absolute; top: 0; right: 50%; 
+            position: absolute; top: 0; right: 50%; /* STRICT 50% BOUNDARY LOCK */
             height: 68px; max-width: 50vw; 
             display: flex; align-items: center; justify-content: flex-end;
             transform: translateX(0); overflow: hidden;
@@ -336,7 +336,7 @@
                     TabManager.init();
                     InventoryEngine.fetch();
                     AuditEngine.initDateLimits();
-                    AppController.syncActiveSessionsFromServer();
+                    AppController.syncActiveSessionsFromServer(); // Hydration Hook
                 });
             },
             dispatchAlert(customerName) {
@@ -473,11 +473,11 @@
             }
             if(e.data.type === 'TICK_UPDATE') {
                 const updates = e.data.payload;
-                updates.sort((a, b) => a.remaining - b.remaining);
+                updates.sort((a, b) => a.remaining - b.remaining); // CHRONOLOGICAL DOM SORTING
                 updates.forEach((update, index) => {
                     const card = document.getElementById(`session-${update.id}`);
                     if (card) {
-                        card.style.order = index;
+                        card.style.order = index; // Apply sorting visually via Flex/Grid order
                         const timerText = document.getElementById(`timer-${update.id}`);
                         if(timerText) {
                             let ms = update.remaining; if(ms < 0) ms = 0;
@@ -580,10 +580,8 @@
                     <div class="invoice-total"><span>GRAND TOTAL:</span> <span style="color:var(--accent);">₹${baseFee + rentalTotal}</span></div>
                 `;
 
-                // Reset button state and dispatch Invoice UI
                 btn.disabled = false;
                 
-                // Reset DISPATCH button inside modal to default state
                 const dispatchBtn = document.getElementById('btn-dispatch-invoice');
                 dispatchBtn.disabled = false;
                 dispatchBtn.innerText = "DISPATCH";
@@ -592,7 +590,6 @@
             },
 
             confirmEntry() {
-                // DOUBLE-TAP PREVENTION MATRIX
                 const btn = document.getElementById('btn-dispatch-invoice');
                 if(btn.disabled) return;
                 btn.disabled = true;
@@ -621,7 +618,7 @@
                 setTimeout(() => {
                     Router.closeModal('modal-invoice');
                     document.querySelector('.nav-tab[data-target="tab-pool"]').click();
-                }, 400); // UI visual queue delay
+                }, 400); 
             },
 
             renderCard(session) {
@@ -657,7 +654,6 @@
                     ).join('');
                 }
                 
-                // Reset UI State for Modal
                 const btn = document.getElementById('btn-dispatch-mid-rental');
                 btn.disabled = false;
                 btn.innerText = "ADD ITEM";
@@ -666,7 +662,6 @@
             },
 
             submitMidRental() {
-                // DOUBLE-TAP PREVENTION MATRIX
                 const btn = document.getElementById('btn-dispatch-mid-rental');
                 if(btn.disabled) return;
                 
@@ -694,7 +689,7 @@
 
                 setTimeout(() => {
                     Router.closeModal('modal-mid-rental');
-                }, 400); // UI visual queue delay
+                }, 400); 
             },
 
             endSession(id) {
