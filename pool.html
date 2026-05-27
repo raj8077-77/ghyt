@@ -259,7 +259,7 @@
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDtKN3XTdXYFtCgHd3QKp-zDY7KpB5AZD-LWkSPZnlX6VlhcY554TKlcqFgeaHwUHsTw/exec";
 
         /* =========================================================================
-           1. SPA POPSTATE HISTORY INTERCEPTOR MATRIX
+           1. BUG FIX #3: SPA POPSTATE HISTORY INTERCEPTOR MATRIX (Cleaned Double-Pop)
            ========================================================================= */
         const Router = {
             stack: [],
@@ -267,12 +267,11 @@
                 history.pushState({ level: 0 }, document.title, location.href);
                 window.addEventListener('popstate', (e) => {
                     if (this.stack.length > 0) {
+                        // Popstate fires cleanly -> Pop stack & Hide UI
                         const topModal = this.stack.pop();
                         document.getElementById(topModal).style.display = 'none';
-                        // Re-trap back button to prevent app exit
-                        history.pushState({ level: this.stack.length }, document.title, location.href);
                     } else {
-                        // Trap root exit
+                        // Re-trap root exit attempt
                         history.pushState({ level: 0 }, document.title, location.href);
                     }
                 });
@@ -283,11 +282,9 @@
                 document.getElementById(id).style.display = 'flex';
             },
             closeModal(id) {
-                const idx = this.stack.indexOf(id);
-                if (idx > -1) {
-                    this.stack.splice(idx, 1);
-                    document.getElementById(id).style.display = 'none';
-                    history.back(); // Physically trigger popstate to keep stack aligned
+                if (this.stack.includes(id)) {
+                    // Triggers the popstate listener automatically (no recursion)
+                    history.back(); 
                 }
             }
         };
@@ -341,6 +338,9 @@
                     TabManager.init();
                     InventoryEngine.fetch();
                     AuditEngine.initDateLimits();
+                    
+                    // Boot Hydration Pipeline (BUG FIX #2 Integration)
+                    AppController.syncActiveSessionsFromServer();
                 });
             },
             dispatchAlert(customerName) {
@@ -378,28 +378,22 @@
                 const canvas = document.getElementById('compression-canvas');
                 const ctx = canvas.getContext('2d');
 
-                // Square Math Crop Logic
                 const size = Math.min(video.videoWidth, video.videoHeight);
                 const startX = (video.videoWidth - size) / 2;
                 const startY = (video.videoHeight - size) / 2;
 
-                // Max Output 400x400
                 canvas.width = 400; canvas.height = 400;
                 ctx.drawImage(video, startX, startY, size, size, 0, 0, 400, 400);
 
-                // 0.75 Compression Quality
                 this.photoBase64 = canvas.toDataURL('image/jpeg', 0.75);
 
-                // Stop Stream
                 this.stream.getTracks().forEach(track => track.stop());
                 video.style.display = 'none';
 
-                // Show Preview
                 const preview = document.getElementById('cam-preview');
                 preview.src = this.photoBase64;
                 preview.style.display = 'block';
 
-                // UI Toggle
                 document.getElementById('btn-capture-cam').classList.add('hidden');
                 document.getElementById('btn-retake-cam').classList.remove('hidden');
             },
@@ -411,15 +405,19 @@
         };
 
         /* =========================================================================
-           5. DYNAMIC SHEET5 INVENTORY RETRIEVAL
+           5. BUG FIX #1: DYNAMIC SHEET5 INVENTORY RETRIEVAL (Data Wrapper Match)
            ========================================================================= */
         const InventoryEngine = {
             async fetch() {
                 try {
-                    // Force text/plain or jsonp workaround. Using standard fetch for doGet.
                     const response = await fetch(`${APPS_SCRIPT_URL}?action=getRentalItems`);
-                    const data = await response.json();
-                    this.render(data);
+                    const json = await response.json();
+                    // Securely drill into the .data wrapper returned by backend
+                    if(json.success && json.data) {
+                        this.render(json.data);
+                    } else {
+                        this.render([]);
+                    }
                 } catch (error) {
                     console.error("Inventory Fetch Failed:", error);
                     document.getElementById('dynamic-rental-grid').innerHTML = `<span style="color:var(--danger-red); font-size:12px;">Failed to load inventory. Check connection.</span>`;
@@ -432,7 +430,7 @@
                     grid.innerHTML = '<span style="color:#555; font-size:12px;">No inventory found.</span>';
                     return;
                 }
-                items.forEach((item, index) => {
+                items.forEach((item) => {
                     const label = document.createElement('label');
                     label.className = 'rental-item';
                     label.innerHTML = `<input type="checkbox" class="rental-chk" data-name="${item.name}" value="${item.fee}"> ${item.name} (₹${item.fee})`;
@@ -453,7 +451,7 @@
                 
                 input.max = today.toISOString().split('T')[0];
                 input.min = threeMonthsAgo.toISOString().split('T')[0];
-                input.value = today.toISOString().split('T')[0]; // Default to today
+                input.value = today.toISOString().split('T')[0];
             },
             async fetchData() {
                 const dateVal = document.getElementById('audit-date').value;
@@ -493,7 +491,7 @@
                 
                 activeSessions.forEach(session => {
                     const msRemaining = session.stopTimeEpoch - now;
-                    const isCritical = msRemaining <= 180000; // < 3 mins
+                    const isCritical = msRemaining <= 180000;
                     
                     if (msRemaining <= 0 && !session.alertFired) {
                         session.alertFired = true;
@@ -521,16 +519,12 @@
             }
             if(e.data.type === 'TICK_UPDATE') {
                 const updates = e.data.payload;
-                // CHRONOLOGICAL SORTING ALGORITHM
                 updates.sort((a, b) => a.remaining - b.remaining);
                 
                 updates.forEach((update, index) => {
                     const card = document.getElementById(`session-${update.id}`);
                     if (card) {
-                        // Re-order DOM physically using flex/grid CSS Order
                         card.style.order = index;
-                        
-                        // Update Timer Text
                         const timerText = document.getElementById(`timer-${update.id}`);
                         if(timerText) {
                             let ms = update.remaining;
@@ -542,7 +536,6 @@
                             timerText.innerText = `${h}:${m}:${s}`;
                         }
                         
-                        // Handle Warning CSS
                         if (update.isCritical && !card.classList.contains('critical')) {
                             card.classList.add('critical');
                         } else if (!update.isCritical && card.classList.contains('critical')) {
@@ -554,7 +547,7 @@
         };
 
         /* =========================================================================
-           8. NETWORK MANAGER (OFFLINE QUEUE & CORS BYPASS)
+           8. NETWORK MANAGER (OFFLINE QUEUE)
            ========================================================================= */
         const NetworkManager = {
             queue: JSON.parse(localStorage.getItem('offlineQueue') || '[]'),
@@ -593,10 +586,48 @@
         };
 
         /* =========================================================================
-           9. CORE APP CONTROLLER & DOM SKELETON
+           9. APP CONTROLLER (INCLUDES BUG FIX #2: HYDRATION PIPELINE)
            ========================================================================= */
         const AppController = {
             currentDraft: null,
+            
+            // BUG FIX #2: Server Hydration Pipeline
+            async syncActiveSessionsFromServer() {
+                try {
+                    const response = await fetch(`${APPS_SCRIPT_URL}?action=getActiveSessions`);
+                    const json = await response.json();
+                    
+                    if (json.success && json.data) {
+                        liveStateGraph = [];
+                        document.getElementById('tab-pool').innerHTML = ''; // Clear grid
+                        
+                        // Default placeholder avatar for recovered sessions
+                        const fallbackSVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23333'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='40' fill='%23666' text-anchor='middle'%3E?%3C/text%3E%3C/svg%3E";
+
+                        json.data.forEach(session => {
+                            // Strict ISO 8601 Date Parsing for Safari/iOS compatibility ("2023-10-25T14:30:00+05:30")
+                            const safeDateStr = session.stopTimeStr.replace(" ", "T") + "+05:30";
+                            const stopTimeEpoch = new Date(safeDateStr).getTime();
+                            
+                            const sessionNode = { 
+                                id: session.mobile, 
+                                name: session.name, 
+                                stopTimeEpoch: stopTimeEpoch, 
+                                alertFired: false, 
+                                photo: fallbackSVG 
+                            };
+                            
+                            liveStateGraph.push(sessionNode);
+                            this.renderCard(sessionNode);
+                        });
+                        
+                        // Push rebuilt state graph to Worker
+                        workerInstance.postMessage({ action: 'SYNC', sessions: liveStateGraph });
+                    }
+                } catch(e) {
+                    console.error("Hydration Failed", e);
+                }
+            },
 
             previewInvoice() {
                 const name = document.getElementById('entry-name').value.trim();
@@ -607,7 +638,6 @@
                 if (!photo) return alert("Security Snapshot is mandatory.");
                 if (!name || mobile.length !== 10) return alert("Enter valid Name and 10-digit Mobile.");
 
-                // Calculate Rentals
                 let rentalQty = 0;
                 let rentalTotal = 0;
                 let rentalNames = [];
@@ -626,7 +656,6 @@
                     photoData: photo
                 };
 
-                // Populate Modal
                 document.getElementById('inv-photo').src = photo;
                 const details = document.getElementById('inv-details');
                 details.innerHTML = `
@@ -642,7 +671,7 @@
 
             confirmEntry() {
                 const payload = this.currentDraft;
-                const stopTimeEpoch = new Date().getTime() + (60 * 60 * 1000); // IST +1 Hour
+                const stopTimeEpoch = new Date().getTime() + (60 * 60 * 1000);
                 
                 const sessionNode = { 
                     id: payload.mobile, name: payload.name, 
@@ -653,12 +682,10 @@
                 workerInstance.postMessage({ action: 'SYNC', sessions: liveStateGraph });
                 this.renderCard(sessionNode);
                 
-                // Exclude heavy base64 from spreadsheet JSON payload to prevent apps script timeout
                 const dbPayload = { ...payload };
                 delete dbPayload.photoData; 
                 NetworkManager.dispatch(dbPayload);
 
-                // Reset Forms & State
                 document.getElementById('entry-name').value = '';
                 document.getElementById('entry-mobile').value = '';
                 document.querySelectorAll('.rental-chk').forEach(c => c.checked = false);
