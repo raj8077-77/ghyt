@@ -73,7 +73,9 @@
             text-transform: uppercase; letter-spacing: 1px; transition: opacity 0.2s;
         }
         .btn-primary:active { opacity: 0.8; }
+        .btn-primary:disabled { background: #555; color: #aaa; cursor: not-allowed; opacity: 1; }
         .btn-secondary { background: #333; }
+        .btn-secondary:disabled { background: #222; color: #555; cursor: not-allowed; }
 
         /* CAMERA UI */
         .camera-wrapper {
@@ -169,7 +171,22 @@
             <div class="invoice-details" id="inv-details"></div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn btn-secondary" onclick="Router.closeModal('modal-invoice')">CANCEL</button>
-                <button class="btn btn-primary" onclick="AppController.confirmEntry()">DISPATCH</button>
+                <button id="btn-dispatch-invoice" class="btn btn-primary" onclick="AppController.confirmEntry()">DISPATCH</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MID-SESSION RENTAL MODAL -->
+    <div id="modal-mid-rental" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="margin-top: 0; color: #fff;">ADD RENTAL</h2>
+            <div class="form-group" style="text-align: left; margin-bottom: 24px;">
+                <label>Select Inventory Item:</label>
+                <select id="mid-rental-select"></select>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="Router.closeModal('modal-mid-rental')">CANCEL</button>
+                <button id="btn-dispatch-mid-rental" class="btn btn-primary" onclick="AppController.submitMidRental()">ADD ITEM</button>
             </div>
         </div>
     </div>
@@ -191,7 +208,6 @@
 
     <!-- TAB 1: ENTRY PANEL -->
     <main id="tab-entry" class="tab-content active">
-        <!-- Hardware Camera Viewfinder -->
         <div class="form-group">
             <label>Security Snapshot (Mandatory)</label>
             <div class="camera-wrapper">
@@ -230,36 +246,31 @@
             </div>
         </div>
 
-        <button class="btn-primary" onclick="AppController.previewInvoice()">REVIEW & START SESSION</button>
+        <button id="btn-preview-invoice" class="btn-primary" onclick="AppController.previewInvoice()">REVIEW & START SESSION</button>
     </main>
 
     <!-- TAB 2: LIVE POOL TERMINAL -->
-    <main id="tab-pool" class="tab-content pool-grid">
-        <!-- Live session cards generated & sorted here programmatically -->
-    </main>
+    <main id="tab-pool" class="tab-content pool-grid"></main>
 
     <!-- TAB 3: AUDIT TERMINAL -->
     <main id="tab-audit" class="tab-content">
         <div class="audit-panel">
             <h2 style="margin-top:0; color:#fff; font-size: 18px;">DAILY FINANCIAL LEDGER</h2>
             <p style="color:#888; font-size: 12px; margin-bottom: 20px;">Queries Column B (Entrance Revenue) only.</p>
-            
             <input type="date" id="audit-date">
             <button class="btn-primary" onclick="AuditEngine.fetchData()">FETCH ANALYTICS</button>
-            
             <div class="revenue-display" id="audit-revenue">₹0</div>
             <div id="audit-status" style="color: #666; font-size: 12px;">Select a date to query history.</div>
         </div>
     </main>
 
-    <!-- OFFLINE STATUS INDICATOR -->
     <div id="network-status" class="network-status">OFFLINE - QUEUING DATA...</div>
 
     <script>
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDtKN3XTdXYFtCgHd3QKp-zDY7KpB5AZD-LWkSPZnlX6VlhcY554TKlcqFgeaHwUHsTw/exec";
 
         /* =========================================================================
-           1. BUG FIX #3: SPA POPSTATE HISTORY INTERCEPTOR MATRIX (Cleaned Double-Pop)
+           1. SPA POPSTATE HISTORY INTERCEPTOR MATRIX
            ========================================================================= */
         const Router = {
             stack: [],
@@ -267,11 +278,9 @@
                 history.pushState({ level: 0 }, document.title, location.href);
                 window.addEventListener('popstate', (e) => {
                     if (this.stack.length > 0) {
-                        // Popstate fires cleanly -> Pop stack & Hide UI
                         const topModal = this.stack.pop();
                         document.getElementById(topModal).style.display = 'none';
                     } else {
-                        // Re-trap root exit attempt
                         history.pushState({ level: 0 }, document.title, location.href);
                     }
                 });
@@ -282,22 +291,15 @@
                 document.getElementById(id).style.display = 'flex';
             },
             closeModal(id) {
-                if (this.stack.includes(id)) {
-                    // Triggers the popstate listener automatically (no recursion)
-                    history.back(); 
-                }
+                if (this.stack.includes(id)) history.back(); 
             }
         };
 
-        /* =========================================================================
-           2. PWA TAB MANAGER & WAKE LOCK
-           ========================================================================= */
         const WakeLockEngine = {
             wakeLock: null,
             async request() {
                 if ('wakeLock' in navigator) {
-                    try { this.wakeLock = await navigator.wakeLock.request('screen'); } 
-                    catch (err) { console.error('Wake Lock failed', err); }
+                    try { this.wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
                 }
             },
             release() {
@@ -312,7 +314,6 @@
                     tab.addEventListener('click', (e) => {
                         tabs.forEach(t => t.classList.remove('active'));
                         e.target.classList.add('active');
-                        
                         document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
                         document.getElementById(e.target.dataset.target).classList.add('active');
 
@@ -323,9 +324,6 @@
             }
         };
 
-        /* =========================================================================
-           3. BACKGROUND TEXT-TO-SPEECH AUDIO ENGINE
-           ========================================================================= */
         const VoiceEngine = {
             isAuthorized: false,
             initHook() {
@@ -338,8 +336,6 @@
                     TabManager.init();
                     InventoryEngine.fetch();
                     AuditEngine.initDateLimits();
-                    
-                    // Boot Hydration Pipeline (BUG FIX #2 Integration)
                     AppController.syncActiveSessionsFromServer();
                 });
             },
@@ -351,13 +347,9 @@
             }
         };
 
-        /* =========================================================================
-           4. REAR CAMERA & HTML5 CANVAS COMPRESSION ENGINE
-           ========================================================================= */
         const CameraEngine = {
             stream: null,
             photoBase64: null,
-            
             async start() {
                 try {
                     this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
@@ -366,60 +358,46 @@
                     video.style.display = 'block';
                     document.getElementById('cam-placeholder').style.display = 'none';
                     document.getElementById('cam-preview').style.display = 'none';
-                    
                     document.getElementById('btn-start-cam').classList.add('hidden');
                     document.getElementById('btn-capture-cam').classList.remove('hidden');
                     document.getElementById('btn-retake-cam').classList.add('hidden');
-                } catch (err) { alert("Camera access denied or unavailable."); }
+                } catch (err) { alert("Camera access denied."); }
             },
-
             capture() {
                 const video = document.getElementById('cam-video');
                 const canvas = document.getElementById('compression-canvas');
                 const ctx = canvas.getContext('2d');
-
                 const size = Math.min(video.videoWidth, video.videoHeight);
                 const startX = (video.videoWidth - size) / 2;
                 const startY = (video.videoHeight - size) / 2;
-
                 canvas.width = 400; canvas.height = 400;
                 ctx.drawImage(video, startX, startY, size, size, 0, 0, 400, 400);
-
                 this.photoBase64 = canvas.toDataURL('image/jpeg', 0.75);
-
                 this.stream.getTracks().forEach(track => track.stop());
                 video.style.display = 'none';
-
                 const preview = document.getElementById('cam-preview');
                 preview.src = this.photoBase64;
                 preview.style.display = 'block';
-
                 document.getElementById('btn-capture-cam').classList.add('hidden');
                 document.getElementById('btn-retake-cam').classList.remove('hidden');
             },
-
             retake() {
                 this.photoBase64 = null;
                 this.start();
             }
         };
 
-        /* =========================================================================
-           5. BUG FIX #1: DYNAMIC SHEET5 INVENTORY RETRIEVAL (Data Wrapper Match)
-           ========================================================================= */
         const InventoryEngine = {
+            items: [], // CACHING INVENTORY GLOBALLY FOR MODAL RE-USE
             async fetch() {
                 try {
                     const response = await fetch(`${APPS_SCRIPT_URL}?action=getRentalItems`);
                     const json = await response.json();
-                    // Securely drill into the .data wrapper returned by backend
                     if(json.success && json.data) {
-                        this.render(json.data);
-                    } else {
-                        this.render([]);
-                    }
+                        this.items = json.data;
+                        this.render(this.items);
+                    } else { this.render([]); }
                 } catch (error) {
-                    console.error("Inventory Fetch Failed:", error);
                     document.getElementById('dynamic-rental-grid').innerHTML = `<span style="color:var(--danger-red); font-size:12px;">Failed to load inventory. Check connection.</span>`;
                 }
             },
@@ -439,16 +417,12 @@
             }
         };
 
-        /* =========================================================================
-           6. TAB C AUDIT TERMINAL ENGINE
-           ========================================================================= */
         const AuditEngine = {
             initDateLimits() {
                 const input = document.getElementById('audit-date');
                 const today = new Date();
                 const threeMonthsAgo = new Date();
                 threeMonthsAgo.setMonth(today.getMonth() - 3);
-                
                 input.max = today.toISOString().split('T')[0];
                 input.min = threeMonthsAgo.toISOString().split('T')[0];
                 input.value = today.toISOString().split('T')[0];
@@ -457,50 +431,34 @@
                 const dateVal = document.getElementById('audit-date').value;
                 const statusText = document.getElementById('audit-status');
                 const revDisplay = document.getElementById('audit-revenue');
-                
                 if(!dateVal) return;
-                
-                statusText.innerText = "Querying ledger...";
-                revDisplay.innerText = "₹---";
-                
+                statusText.innerText = "Querying ledger..."; revDisplay.innerText = "₹---";
                 try {
                     const response = await fetch(`${APPS_SCRIPT_URL}?action=getAuditRevenue&date=${dateVal}`);
                     const data = await response.json();
                     revDisplay.innerText = `₹${data.revenue || 0}`;
                     statusText.innerText = `Ledger sync complete for ${dateVal}.`;
                 } catch (err) {
-                    statusText.innerText = "Error fetching data. Check connection.";
-                    revDisplay.innerText = "₹ERR";
+                    statusText.innerText = "Error fetching data."; revDisplay.innerText = "₹ERR";
                 }
             }
         };
 
-        /* =========================================================================
-           7. INLINE WEB WORKER & CHRONOLOGICAL DOM SORTING
-           ========================================================================= */
         const workerCode = `
             let activeSessions = [];
-            self.onmessage = function(e) {
-                if (e.data.action === 'SYNC') { activeSessions = e.data.sessions; }
-            };
-
+            self.onmessage = function(e) { if (e.data.action === 'SYNC') { activeSessions = e.data.sessions; } };
             setInterval(() => {
                 const now = new Date().getTime(); 
-                const updates = [];
-                const alerts = [];
-                
+                const updates = []; const alerts = [];
                 activeSessions.forEach(session => {
                     const msRemaining = session.stopTimeEpoch - now;
                     const isCritical = msRemaining <= 180000;
-                    
                     if (msRemaining <= 0 && !session.alertFired) {
                         session.alertFired = true;
                         alerts.push({ id: session.id, name: session.name, type: 'EXPIRED' });
                     }
-
                     updates.push({ id: session.id, remaining: msRemaining, isCritical: isCritical });
                 });
-
                 self.postMessage({ type: 'TICK_UPDATE', payload: updates });
                 if(alerts.length > 0) self.postMessage({ type: 'ALERTS', payload: alerts });
             }, 1000);
@@ -509,53 +467,38 @@
         const workerInstance = new Worker(URL.createObjectURL(blob));
 
         let liveStateGraph = []; 
-
         workerInstance.onmessage = function(e) {
             if (e.data.type === 'ALERTS') {
-                e.data.payload.forEach(alert => {
-                    if(alert.type === 'EXPIRED') VoiceEngine.dispatchAlert(alert.name);
-                });
-                return;
+                e.data.payload.forEach(alert => { if(alert.type === 'EXPIRED') VoiceEngine.dispatchAlert(alert.name); }); return;
             }
             if(e.data.type === 'TICK_UPDATE') {
                 const updates = e.data.payload;
                 updates.sort((a, b) => a.remaining - b.remaining);
-                
                 updates.forEach((update, index) => {
                     const card = document.getElementById(`session-${update.id}`);
                     if (card) {
                         card.style.order = index;
                         const timerText = document.getElementById(`timer-${update.id}`);
                         if(timerText) {
-                            let ms = update.remaining;
-                            if(ms < 0) ms = 0;
+                            let ms = update.remaining; if(ms < 0) ms = 0;
                             const totalSec = Math.floor(ms / 1000);
                             const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
                             const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
                             const s = String(totalSec % 60).padStart(2, '0');
                             timerText.innerText = `${h}:${m}:${s}`;
                         }
-                        
-                        if (update.isCritical && !card.classList.contains('critical')) {
-                            card.classList.add('critical');
-                        } else if (!update.isCritical && card.classList.contains('critical')) {
-                            card.classList.remove('critical');
-                        }
+                        if (update.isCritical && !card.classList.contains('critical')) { card.classList.add('critical'); } 
+                        else if (!update.isCritical && card.classList.contains('critical')) { card.classList.remove('critical'); }
                     }
                 });
             }
         };
 
-        /* =========================================================================
-           8. NETWORK MANAGER (OFFLINE QUEUE)
-           ========================================================================= */
         const NetworkManager = {
             queue: JSON.parse(localStorage.getItem('offlineQueue') || '[]'),
             init() {
                 window.addEventListener('online', () => this.flushQueue());
-                window.addEventListener('offline', () => {
-                    document.getElementById('network-status').style.display = 'block';
-                });
+                window.addEventListener('offline', () => { document.getElementById('network-status').style.display = 'block'; });
                 if(navigator.onLine) this.flushQueue();
             },
             saveQueue() {
@@ -563,92 +506,64 @@
                 if(!navigator.onLine) document.getElementById('network-status').style.display = 'block';
             },
             async dispatch(payload) {
-                if (!navigator.onLine) {
-                    this.queue.push(payload); this.saveQueue(); return;
-                }
-                try {
-                    await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(payload),
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                    });
-                } catch (error) {
-                    this.queue.push(payload); this.saveQueue();
-                }
+                if (!navigator.onLine) { this.queue.push(payload); this.saveQueue(); return; }
+                try { await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); } 
+                catch (error) { this.queue.push(payload); this.saveQueue(); }
             },
             async flushQueue() {
                 document.getElementById('network-status').style.display = 'none';
                 if (this.queue.length === 0) return;
-                const currentQueue = [...this.queue];
-                this.queue = []; this.saveQueue();
+                const currentQueue = [...this.queue]; this.queue = []; this.saveQueue();
                 for (let payload of currentQueue) await this.dispatch(payload);
             }
         };
 
-        /* =========================================================================
-           9. APP CONTROLLER (INCLUDES BUG FIX #2: HYDRATION PIPELINE)
-           ========================================================================= */
         const AppController = {
             currentDraft: null,
+            activeRentalId: null,
             
-            // BUG FIX #2: Server Hydration Pipeline
             async syncActiveSessionsFromServer() {
                 try {
                     const response = await fetch(`${APPS_SCRIPT_URL}?action=getActiveSessions`);
                     const json = await response.json();
-                    
                     if (json.success && json.data) {
                         liveStateGraph = [];
-                        document.getElementById('tab-pool').innerHTML = ''; // Clear grid
-                        
-                        // Default placeholder avatar for recovered sessions
+                        document.getElementById('tab-pool').innerHTML = ''; 
                         const fallbackSVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23333'/%3E%3Ctext x='50' y='55' font-family='Arial' font-size='40' fill='%23666' text-anchor='middle'%3E?%3C/text%3E%3C/svg%3E";
-
                         json.data.forEach(session => {
-                            // Strict ISO 8601 Date Parsing for Safari/iOS compatibility ("2023-10-25T14:30:00+05:30")
                             const safeDateStr = session.stopTimeStr.replace(" ", "T") + "+05:30";
                             const stopTimeEpoch = new Date(safeDateStr).getTime();
-                            
                             const sessionNode = { 
-                                id: session.mobile, 
-                                name: session.name, 
-                                stopTimeEpoch: stopTimeEpoch, 
-                                alertFired: false, 
-                                photo: fallbackSVG 
+                                id: session.mobile, name: session.name, 
+                                stopTimeEpoch: stopTimeEpoch, alertFired: false, photo: fallbackSVG 
                             };
-                            
                             liveStateGraph.push(sessionNode);
                             this.renderCard(sessionNode);
                         });
-                        
-                        // Push rebuilt state graph to Worker
                         workerInstance.postMessage({ action: 'SYNC', sessions: liveStateGraph });
                     }
-                } catch(e) {
-                    console.error("Hydration Failed", e);
-                }
+                } catch(e) {}
             },
 
             previewInvoice() {
+                const btn = document.getElementById('btn-preview-invoice');
+                btn.disabled = true;
+
                 const name = document.getElementById('entry-name').value.trim();
                 const mobile = document.getElementById('entry-mobile').value.trim();
                 const baseFee = parseInt(document.getElementById('entry-fee').value);
                 const photo = CameraEngine.photoBase64;
 
-                if (!photo) return alert("Security Snapshot is mandatory.");
-                if (!name || mobile.length !== 10) return alert("Enter valid Name and 10-digit Mobile.");
+                if (!photo || !name || mobile.length !== 10) {
+                    btn.disabled = false;
+                    return alert("Please ensure Photo, Name, and exactly 10-digit Mobile are provided.");
+                }
 
-                let rentalQty = 0;
-                let rentalTotal = 0;
-                let rentalNames = [];
-                const checks = document.querySelectorAll('.rental-chk:checked');
-                checks.forEach(chk => {
-                    rentalQty++;
-                    rentalTotal += parseInt(chk.value);
+                let rentalQty = 0; let rentalTotal = 0; let rentalNames = [];
+                document.querySelectorAll('.rental-chk:checked').forEach(chk => {
+                    rentalQty++; rentalTotal += parseInt(chk.value);
                     rentalNames.push(`${chk.dataset.name} (₹${chk.value})`);
                 });
-
-                const grandTotal = baseFee + rentalTotal;
 
                 this.currentDraft = {
                     action: "createEntry", name: name, village: "Local", fee: baseFee, 
@@ -657,19 +572,32 @@
                 };
 
                 document.getElementById('inv-photo').src = photo;
-                const details = document.getElementById('inv-details');
-                details.innerHTML = `
+                document.getElementById('inv-details').innerHTML = `
                     <div class="invoice-row"><span>Name:</span> <span>${name}</span></div>
                     <div class="invoice-row"><span>Mobile:</span> <span>${mobile}</span></div>
                     <div class="invoice-row"><span>Base Admission:</span> <span>₹${baseFee}</span></div>
                     ${rentalQty > 0 ? `<div class="invoice-row" style="color:#888; font-size:12px;">Rentals: ${rentalNames.join(', ')}</div>` : ''}
-                    <div class="invoice-total"><span>GRAND TOTAL:</span> <span style="color:var(--accent);">₹${grandTotal}</span></div>
+                    <div class="invoice-total"><span>GRAND TOTAL:</span> <span style="color:var(--accent);">₹${baseFee + rentalTotal}</span></div>
                 `;
+
+                // Reset button state and dispatch Invoice UI
+                btn.disabled = false;
+                
+                // Reset DISPATCH button inside modal to default state
+                const dispatchBtn = document.getElementById('btn-dispatch-invoice');
+                dispatchBtn.disabled = false;
+                dispatchBtn.innerText = "DISPATCH";
 
                 Router.openModal('modal-invoice');
             },
 
             confirmEntry() {
+                // DOUBLE-TAP PREVENTION MATRIX
+                const btn = document.getElementById('btn-dispatch-invoice');
+                if(btn.disabled) return;
+                btn.disabled = true;
+                btn.innerText = "DISPATCHING...";
+
                 const payload = this.currentDraft;
                 const stopTimeEpoch = new Date().getTime() + (60 * 60 * 1000);
                 
@@ -682,8 +610,7 @@
                 workerInstance.postMessage({ action: 'SYNC', sessions: liveStateGraph });
                 this.renderCard(sessionNode);
                 
-                const dbPayload = { ...payload };
-                delete dbPayload.photoData; 
+                const dbPayload = { ...payload }; delete dbPayload.photoData; 
                 NetworkManager.dispatch(dbPayload);
 
                 document.getElementById('entry-name').value = '';
@@ -691,8 +618,10 @@
                 document.querySelectorAll('.rental-chk').forEach(c => c.checked = false);
                 CameraEngine.retake();
 
-                Router.closeModal('modal-invoice');
-                document.querySelector('.nav-tab[data-target="tab-pool"]').click();
+                setTimeout(() => {
+                    Router.closeModal('modal-invoice');
+                    document.querySelector('.nav-tab[data-target="tab-pool"]').click();
+                }, 400); // UI visual queue delay
             },
 
             renderCard(session) {
@@ -717,24 +646,64 @@
             },
 
             addRental(id) {
+                this.activeRentalId = id;
+                const select = document.getElementById('mid-rental-select');
+                
+                if (InventoryEngine.items.length === 0) {
+                    select.innerHTML = `<option value="0">No Items Loaded in Matrix</option>`;
+                } else {
+                    select.innerHTML = InventoryEngine.items.map(item => 
+                        `<option value="${item.fee}" data-name="${item.name}">${item.name} (₹${item.fee})</option>`
+                    ).join('');
+                }
+                
+                // Reset UI State for Modal
+                const btn = document.getElementById('btn-dispatch-mid-rental');
+                btn.disabled = false;
+                btn.innerText = "ADD ITEM";
+                
+                Router.openModal('modal-mid-rental');
+            },
+
+            submitMidRental() {
+                // DOUBLE-TAP PREVENTION MATRIX
+                const btn = document.getElementById('btn-dispatch-mid-rental');
+                if(btn.disabled) return;
+                
+                const id = this.activeRentalId;
                 const session = liveStateGraph.find(s => s.id === id);
                 if(!session) return;
-                alert(`Rental Engine: Added +1 Item (₹20) to ${session.name}.`);
+
+                const select = document.getElementById('mid-rental-select');
+                const selectedOption = select.options[select.selectedIndex];
+                const fee = parseInt(selectedOption.value);
+                const itemName = selectedOption.getAttribute('data-name');
+                
+                if(fee === 0 && !itemName) return alert("Inventory empty. Cannot assign.");
+
+                btn.disabled = true;
+                btn.innerText = "PROCESSING...";
+
                 NetworkManager.dispatch({
-                    action: "addMidSessionRental", name: session.name, mobile: id, additionalQty: 1, additionalFee: 20
+                    action: "addMidSessionRental", 
+                    name: session.name, 
+                    mobile: id, 
+                    additionalQty: 1, 
+                    additionalFee: fee
                 });
+
+                setTimeout(() => {
+                    Router.closeModal('modal-mid-rental');
+                }, 400); // UI visual queue delay
             },
 
             endSession(id) {
                 const session = liveStateGraph.find(s => s.id === id);
                 if(!session) return;
-                
                 liveStateGraph = liveStateGraph.filter(s => s.id !== id);
                 workerInstance.postMessage({ action: 'SYNC', sessions: liveStateGraph });
-                
                 const card = document.getElementById(`session-${id}`);
                 if(card) card.remove();
-
                 NetworkManager.dispatch({ action: "endSession", name: session.name, mobile: id });
             }
         };
