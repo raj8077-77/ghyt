@@ -1,710 +1,721 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#000000">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Smart Pool Live</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Immersive Pool Engine</title>
     <style>
-        /* CORE VARIABLES & RESET */
         :root {
-            --bg-dark: #0f0f11;
-            --bg-card: #1a1a1e;
-            --primary: #4f46e5;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --alert-red: #ef4444;
-            --border: #27272a;
+            --bg-dark: #0a0a0a;
+            --header-black: #000000;
+            --text-high-contrast: #ffffff;
+            --danger-red: #ff3333;
+            --card-bg: #1a1a1a;
+            --accent: #4a90e2;
+            --border-color: #333;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--bg-dark); color: var(--text-main); overflow-x: hidden; }
-
-        /* OVERLAY: SYSTEM UNLOCK (AUDIO & HARDWARE BYPASS) */
-        #system-unlock {
-            position: fixed; inset: 0; background: #000; z-index: 9999; display: flex;
-            flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;
-        }
-        .btn-unlock {
-            background: var(--primary); color: white; border: none; padding: 18px 32px;
-            font-size: 1.1rem; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px;
-        }
-
-        /* HEADER LAYER (STRICT 50% MIDPOINT CONSTRAINT) */
-        header {
-            position: relative; height: 70px; background: #000000; width: 100%; border-bottom: 1px solid var(--border);
-        }
-        .header-left {
-            position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
-        }
-        .header-left img {
-            width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);
-        }
-        .header-right {
-            position: absolute; right: 50%; top: 50%; transform: translateY(-50%);
-            /* THE ZERO DEVIATION 50% CLAMP - Element's right edge is exactly at 50% X-Axis */
-        }
-        .brand-asset {
-            height: 30px; object-fit: contain; padding-right: 15px; 
-            /* Placeholder styling to represent the brand asset */
-            filter: brightness(0) invert(1); opacity: 0.9;
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-dark);
+            color: var(--text-high-contrast);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* THREE-BAR SEGMENTED NAVIGATION */
-        nav {
-            display: flex; background: var(--bg-card); position: sticky; top: 0; z-index: 50;
-            border-bottom: 1px solid var(--border);
+        /* 1. ASYMMETRIC CORPORATE HEADER */
+        #app-header {
+            position: relative; width: 100%; height: 68px;
+            background-color: var(--header-black);
+            display: flex; align-items: center; border-bottom: 1px solid var(--border-color);
+        }
+        .header-avatar {
+            width: 50px; height: 50px; border-radius: 50%;
+            margin-left: 12px; object-fit: cover;
+        }
+        .brand-anchor-boundary {
+            position: absolute; top: 0; right: 50%; 
+            height: 68px; max-width: 50vw; 
+            display: flex; align-items: center; justify-content: flex-end;
+            transform: translateX(0); overflow: hidden;
+        }
+        .brand-png { height: 48px; object-fit: contain; margin-right: 8px; }
+
+        /* 2. PERSISTENT NAVIGATION CONSOLE */
+        #nav-console {
+            position: sticky; top: 0; display: flex; width: 100%;
+            background: #111; z-index: 100; border-bottom: 1px solid var(--border-color);
         }
         .nav-tab {
-            flex: 1; text-align: center; padding: 16px 0; color: var(--text-muted); font-size: 0.9rem;
-            font-weight: 600; text-transform: uppercase; cursor: pointer; border-bottom: 3px solid transparent;
-            transition: all 0.2s ease;
+            flex: 1; padding: 16px 0; text-align: center; font-weight: 600;
+            font-size: 14px; color: #666; border-bottom: 3px solid transparent;
+            cursor: pointer; transition: color 0.3s;
         }
-        .nav-tab.active { color: var(--text-main); border-bottom-color: var(--primary); }
+        .nav-tab.active { color: #fff; border-bottom: 3px solid var(--accent); }
 
-        /* TAB VIEWS */
-        .tab-view { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
-        .tab-view.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* 3. VIEWPORT CONTAINERS */
+        .tab-content { display: none; padding: 16px; max-width: 800px; margin: 0 auto; }
+        .tab-content.active { display: block; }
 
-        /* FORM UI (TAB A & C) */
-        .input-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; }
-        input[type="text"], input[type="number"], input[type="date"] {
-            width: 100%; padding: 14px; background: #000; border: 1px solid var(--border);
-            color: white; border-radius: 8px; font-size: 1rem;
+        /* FORM SKELETON (Tab A) */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: #aaa; font-weight: bold; }
+        .form-group input[type="text"], .form-group input[type="tel"], .form-group select { 
+            width: 100%; padding: 14px; border-radius: 6px; border: 1px solid var(--border-color); 
+            background: #000; color: #fff; font-size: 16px; 
         }
-        
-        /* FEE SELECTOR (LOCKED RADIO GRID) */
-        .fee-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .fee-btn {
-            background: #000; border: 1px solid var(--border); padding: 14px; text-align: center;
-            border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold; color: var(--text-muted);
+        .btn-primary { 
+            width: 100%; padding: 16px; background: var(--accent); color: #fff; 
+            border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; 
+            text-transform: uppercase; letter-spacing: 1px; transition: opacity 0.2s;
         }
-        .fee-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-primary:active { opacity: 0.8; }
+        .btn-secondary { background: #333; }
 
-        /* DYNAMIC RENTAL GRID */
-        .rental-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px;}
+        /* CAMERA UI */
+        .camera-wrapper {
+            width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 8px; 
+            overflow: hidden; position: relative; border: 1px solid var(--border-color); margin-bottom: 12px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #cam-video { width: 100%; height: 100%; object-fit: cover; display: none; }
+        #cam-preview { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .cam-controls { display: flex; gap: 8px; margin-bottom: 16px; }
+
+        /* INVENTORY GRID */
+        .rental-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px;
+        }
         .rental-item {
-            display: flex; justify-content: space-between; align-items: center; background: #000;
-            padding: 14px; border: 1px solid var(--border); border-radius: 8px;
+            background: #111; border: 1px solid var(--border-color); padding: 12px; border-radius: 6px;
+            display: flex; align-items: center; gap: 8px; font-size: 14px;
         }
-        .rental-item input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--primary); }
+        .rental-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
 
-        /* BUTTONS */
-        .btn-main {
-            width: 100%; padding: 16px; background: white; color: black; border: none;
-            border-radius: 8px; font-size: 1.1rem; font-weight: 800; cursor: pointer;
+        /* LIVE POOL METRICS (Tab B) */
+        .pool-grid { display: flex; flex-direction: column; gap: 12px; }
+        .session-card {
+            background: var(--card-bg); border-radius: 8px; padding: 16px;
+            display: flex; flex-direction: column; gap: 12px;
+            transition: all 0.3s ease; border: 1px solid var(--border-color);
         }
-        .btn-secondary { background: var(--bg-card); color: white; border: 1px solid var(--border); }
-        .btn-danger { background: var(--alert-red); color: white; }
+        .session-card.critical { animation: pulse-red 1s infinite alternate; }
+        @keyframes pulse-red {
+            from { box-shadow: 0 0 0px 0px rgba(255, 51, 51, 0); border: 1px solid var(--border-color); }
+            to { box-shadow: 0 0 15px 2px rgba(255, 51, 51, 0.6); border: 1px solid var(--danger-red); }
+        }
+        .card-header { display: flex; justify-content: space-between; align-items: center; }
+        .swimmer-info { display: flex; align-items: center; gap: 12px; }
+        .swimmer-thumb { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #000; border: 1px solid #444; }
+        .swimmer-name { font-size: 18px; font-weight: bold; margin: 0; }
+        .timer-display { font-size: 24px; font-family: monospace; font-weight: bold; color: #fff; }
+        .critical .timer-display { color: var(--danger-red); }
+        .card-actions { display: flex; gap: 8px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; text-transform: uppercase; }
+        .btn-add { background: #333; color: #fff; }
+        .btn-end { background: var(--danger-red); color: #fff; }
 
-        /* TAB B: LIVE POOL TRACKER */
-        .live-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        .live-card {
-            background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
-            padding: 15px; display: flex; flex-direction: column; transition: all 0.3s;
+        /* AUDIT DASHBOARD (Tab C) */
+        .audit-panel { background: #111; padding: 24px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; }
+        .audit-panel input[type="date"] { 
+            width: 100%; padding: 14px; margin-bottom: 16px; background: #000; color: #fff; 
+            border: 1px solid var(--border-color); border-radius: 6px; font-size: 16px; color-scheme: dark;
         }
-        .live-card.critical {
-            border-color: var(--alert-red); background: rgba(239, 68, 68, 0.1);
-            animation: pulse-red 1.5s infinite;
-        }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
-        
-        .card-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
-        .card-pfp { width: 60px; height: 60px; border-radius: 10px; object-fit: cover; cursor: pointer; }
-        .card-info { flex: 1; }
-        .card-name { font-size: 1.1rem; font-weight: bold; margin-bottom: 4px; }
-        .card-timer { font-size: 1.5rem; font-family: monospace; font-weight: bold; color: var(--primary); }
-        .live-card.critical .card-timer { color: var(--alert-red); }
-        .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .revenue-display { font-size: 48px; font-weight: 900; margin: 20px 0; color: var(--accent); }
 
         /* MODALS */
         .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100;
-            display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); 
+            z-index: 9999; align-items: center; justify-content: center; padding: 16px;
         }
-        .modal-content { background: var(--bg-card); width: 100%; max-width: 400px; padding: 20px; border-radius: 12px; }
-        #camera-feed { width: 100%; border-radius: 8px; background: #000; margin-bottom: 15px; aspect-ratio: 1; object-fit: cover;}
+        .modal-content {
+            background: #111; padding: 24px; text-align: center; border: 1px solid var(--border-color); 
+            width: 100%; max-width: 400px; border-radius: 12px;
+        }
         
-        /* HD ZOOM MODAL */
-        #hd-zoom-modal img { width: 100%; height: auto; border-radius: 12px; }
+        /* INVOICE MODAL SPECIFICS */
+        .invoice-details { text-align: left; background: #000; padding: 16px; border-radius: 8px; margin: 16px 0; font-family: monospace; font-size: 14px; }
+        .invoice-row { display: flex; justify-content: space-between; margin-bottom: 8px; color: #aaa; }
+        .invoice-total { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #444; font-size: 18px; font-weight: bold; color: #fff; }
+        .invoice-img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; margin: 0 auto 16px auto; display: block; border: 2px solid #333; }
 
-        /* LOADER */
-        .loader { display: none; text-align: center; padding: 20px; color: var(--primary); font-weight: bold;}
+        .network-status {
+            position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+            background: #ff9800; color: #000; padding: 8px 16px; border-radius: 20px;
+            font-size: 12px; font-weight: bold; display: none; z-index: 1000;
+        }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <!-- HARDWARE & AUDIO BYPASS SCREEN -->
-    <div id="system-unlock">
-        <img src="https://ik.imagekit.io/5lz94dan6e/Xeno%20Goku%20pfp.jpeg?updatedAt=1775535282589" alt="Logo" style="width:100px; border-radius:50%; margin-bottom:20px;">
-        <h2>Initialize System Engine</h2>
-        <p style="color:#94a3b8; margin-top:10px; font-size:0.9rem;">Authorizes Hardware Background Audio & Time Sync</p>
-        <button class="btn-unlock" onclick="initializeEngine()">CONNECT SYSTEM</button>
+    <!-- AUDIO UNLOCK HOOK -->
+    <div id="modal-audio" class="modal-overlay" style="display:flex;">
+        <div class="modal-content">
+            <h2 style="margin-top: 0;">SYSTEM INITIALIZATION</h2>
+            <p style="color: #aaa; font-size: 14px; line-height: 1.5;">Authorize background protocols and offline state engine.</p>
+            <button id="btn-initialize" class="btn-primary" style="margin-top: 20px;">Initialize Engine</button>
+        </div>
     </div>
 
-    <!-- STRICT HEADER -->
-    <header>
-        <div class="header-left">
-            <img src="https://ik.imagekit.io/5lz94dan6e/Xeno%20Goku%20pfp.jpeg?updatedAt=1775535282589" alt="Profile">
+    <!-- INVOICE SUMMARY MODAL -->
+    <div id="modal-invoice" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="margin-top: 0; color: #fff;">INVOICE SUMMARY</h2>
+            <img id="inv-photo" class="invoice-img" src="" alt="Swimmer">
+            <div class="invoice-details" id="inv-details"></div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="Router.closeModal('modal-invoice')">CANCEL</button>
+                <button class="btn btn-primary" onclick="AppController.confirmEntry()">DISPATCH</button>
+            </div>
         </div>
-        <div class="header-right">
-            <!-- Representing Brand Asset: Locked to exactly 50% of the screen center on the right edge -->
-            <svg class="brand-asset" viewBox="0 0 100 30" preserveAspectRatio="xMidYMid meet">
-                <text x="0" y="22" font-family="sans-serif" font-weight="900" font-size="24" fill="white">POOL</text>
-            </svg>
+    </div>
+
+    <!-- HEADER -->
+    <header id="app-header">
+        <img src="https://ik.imagekit.io/5lz94dan6e/Xeno%20Goku%20pfp.jpeg?updatedAt=1775535282589" class="header-avatar" alt="Avatar">
+        <div class="brand-anchor-boundary">
+            <img src="https://ik.imagekit.io/silentgamers/6d37cee8dd5105cda3fb25fa287c1819.jpg?updatedAt=1760167768059&ik-s=47f862d8c94abb4a628fcb722d38992f87cd6c88" class="brand-png" alt="Brand Logo">
         </div>
     </header>
 
-    <!-- NAVIGATION -->
-    <nav>
-        <div class="nav-tab active" onclick="switchTab('tab-entry')">Entry</div>
-        <div class="nav-tab" onclick="switchTab('tab-live')">Live Pool</div>
-        <div class="nav-tab" onclick="switchTab('tab-audit')">Audit</div>
+    <!-- NAV CONSOLE -->
+    <nav id="nav-console">
+        <div class="nav-tab active" data-target="tab-entry">1. ENTRY</div>
+        <div class="nav-tab" data-target="tab-pool">2. LIVE POOL</div>
+        <div class="nav-tab" data-target="tab-audit">3. AUDIT</div>
     </nav>
 
-    <!-- TAB A: ENTRY DASHBOARD -->
-    <div id="tab-entry" class="tab-view active">
-        <div class="input-group">
-            <label>Name</label>
-            <input type="text" id="entry-name" placeholder="Enter full name" autocomplete="off">
+    <!-- TAB 1: ENTRY PANEL -->
+    <main id="tab-entry" class="tab-content active">
+        <!-- Hardware Camera Viewfinder -->
+        <div class="form-group">
+            <label>Security Snapshot (Mandatory)</label>
+            <div class="camera-wrapper">
+                <span id="cam-placeholder" style="color:#555; font-size: 12px;">Camera Offline</span>
+                <video id="cam-video" autoplay playsinline></video>
+                <img id="cam-preview" alt="Preview">
+            </div>
+            <div class="cam-controls">
+                <button class="btn btn-primary btn-secondary" id="btn-start-cam" onclick="CameraEngine.start()">Open Camera</button>
+                <button class="btn btn-primary hidden" id="btn-capture-cam" onclick="CameraEngine.capture()">Capture</button>
+                <button class="btn btn-primary btn-secondary hidden" id="btn-retake-cam" onclick="CameraEngine.retake()">Retake</button>
+            </div>
+            <canvas id="compression-canvas" style="display:none;"></canvas>
         </div>
-        <div class="input-group">
+
+        <div class="form-group">
+            <label>Swimmer Name</label>
+            <input type="text" id="entry-name" placeholder="Enter Name">
+        </div>
+        <div class="form-group">
             <label>Mobile Number</label>
-            <input type="number" id="entry-mobile" placeholder="10-digit mobile" autocomplete="off">
+            <input type="tel" id="entry-mobile" placeholder="10-digit number" maxlength="10">
         </div>
-        <div class="input-group">
-            <label>Village</label>
-            <input type="text" id="entry-village" placeholder="Location" autocomplete="off">
-        </div>
-        
-        <div class="input-group">
+        <div class="form-group">
             <label>Base Entrance Fee (INR)</label>
-            <div class="fee-selector">
-                <div class="fee-btn active" onclick="selectFee(40, this)">40</div>
-                <div class="fee-btn" onclick="selectFee(50, this)">50</div>
-            </div>
-            <input type="hidden" id="entry-fee" value="40">
-        </div>
-
-        <div class="input-group">
-            <label>Rental Inventory (Sheet 5 Sync)</label>
-            <div class="rental-grid" id="entry-rentals">
-                <!-- Dynamically Populated -->
-            </div>
-        </div>
-
-        <button class="btn-main" onclick="openCameraModal()">CONFIRM & CAPTURE</button>
-    </div>
-
-    <!-- TAB B: LIVE POOL TRACKER -->
-    <div id="tab-live" class="tab-view">
-        <div class="live-grid" id="live-pool-grid">
-            <!-- Active Sessions Dynamically Rendered -->
-        </div>
-    </div>
-
-    <!-- TAB C: AUDIT DASHBOARD -->
-    <div id="tab-audit" class="tab-view">
-        <div class="input-group">
-            <label>Select Date (Max 3 Months Back)</label>
-            <input type="date" id="audit-date" onchange="fetchAuditData()">
+            <select id="entry-fee">
+                <option value="40">₹40 - Standard</option>
+                <option value="50">₹50 - Premium</option>
+            </select>
         </div>
         
-        <div style="background: var(--bg-card); padding: 30px; border-radius: 12px; text-align: center; margin-top: 20px; border: 1px solid var(--border);">
-            <p style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Total Base Entrance Revenue</p>
-            <h1 id="audit-revenue" style="font-size: 3rem; margin-top: 10px; color: var(--text-main);">₹0</h1>
-            <p style="color: var(--alert-red); font-size: 0.75rem; margin-top: 10px;">*Excludes Rental Fees</p>
+        <div class="form-group">
+            <label>Rental Inventory (Dynamic)</label>
+            <div id="dynamic-rental-grid" class="rental-grid">
+                <span style="color:#555; font-size:12px;">Fetching inventory...</span>
+            </div>
         </div>
-        <div id="audit-loader" class="loader">Querying Ledger...</div>
-    </div>
 
-    <!-- MODAL: CAMERA CAPTURE -->
-    <div id="modal-camera" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 15px;">Facial Verification</h3>
-            <video id="camera-feed" autoplay playsinline></video>
-            <canvas id="hidden-canvas" style="display: none;"></canvas>
-            <button class="btn-main" onclick="captureAndCompress()">TAKE SNAPSHOT</button>
-            <button class="btn-main btn-secondary" style="margin-top: 10px;" onclick="closeModal('modal-camera')">CANCEL</button>
-        </div>
-    </div>
+        <button class="btn-primary" onclick="AppController.previewInvoice()">REVIEW & START SESSION</button>
+    </main>
 
-    <!-- MODAL: INVOICE ENGINE -->
-    <div id="modal-invoice" class="modal-overlay">
-        <div class="modal-content" style="background: white; color: black;">
-            <h2 style="text-align: center; margin-bottom: 20px; text-transform: uppercase; border-bottom: 2px dashed #ccc; padding-bottom: 10px;">Final Invoice</h2>
-            <div id="invoice-details" style="font-size: 1.1rem; line-height: 1.8; margin-bottom: 20px;"></div>
-            <button class="btn-main" style="background: var(--primary); color: white;" onclick="submitFinalEntry()">LOCK & SUBMIT</button>
-            <button class="btn-main" style="background: #f1f5f9; color: black; margin-top: 10px; border: 1px solid #ccc;" onclick="closeModal('modal-invoice')">EDIT</button>
-            <div id="submit-loader" class="loader" style="color:var(--primary);">Processing Network Payload...</div>
-        </div>
-    </div>
+    <!-- TAB 2: LIVE POOL TERMINAL -->
+    <main id="tab-pool" class="tab-content pool-grid">
+        <!-- Live session cards generated & sorted here programmatically -->
+    </main>
 
-    <!-- MODAL: HD ZOOM PREVIEW -->
-    <div id="modal-hd" class="modal-overlay" onclick="closeModal('modal-hd')">
-        <div style="width: 100%; max-width: 400px; position: relative;">
-            <img id="hd-image" src="" alt="HD Verification">
-            <p style="text-align: center; color: white; margin-top: 15px;">Tap anywhere to close</p>
+    <!-- TAB 3: AUDIT TERMINAL -->
+    <main id="tab-audit" class="tab-content">
+        <div class="audit-panel">
+            <h2 style="margin-top:0; color:#fff; font-size: 18px;">DAILY FINANCIAL LEDGER</h2>
+            <p style="color:#888; font-size: 12px; margin-bottom: 20px;">Queries Column B (Entrance Revenue) only.</p>
+            
+            <input type="date" id="audit-date">
+            <button class="btn-primary" onclick="AuditEngine.fetchData()">FETCH ANALYTICS</button>
+            
+            <div class="revenue-display" id="audit-revenue">₹0</div>
+            <div id="audit-status" style="color: #666; font-size: 12px;">Select a date to query history.</div>
         </div>
-    </div>
+    </main>
 
-    <!-- MODAL: ADD RENTAL MID-SESSION -->
-    <div id="modal-add-rental" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 15px;">Add Accessory</h3>
-            <div class="rental-grid" id="mid-session-rentals"></div>
-            <button class="btn-main" onclick="confirmMidSessionRental()">UPDATE LEDGER</button>
-            <button class="btn-main btn-secondary" style="margin-top: 10px;" onclick="closeModal('modal-add-rental')">CANCEL</button>
-        </div>
-    </div>
+    <!-- OFFLINE STATUS INDICATOR -->
+    <div id="network-status" class="network-status">OFFLINE - QUEUING DATA...</div>
 
     <script>
-        // CONFIGURATION
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxDtKN3XTdXYFtCgHd3QKp-zDY7KpB5AZD-LWkSPZnlX6VlhcY554TKlcqFgeaHwUHsTw/exec';
-        
-        // STATE MANAGEMENT (Ephemeral Live State)
-        let activeSessions = [];
-        let rentalInventory = [
-            { name: "Swimming Costume", fee: 20 },
-            { name: "Goggles", fee: 10 },
-            { name: "Cap", fee: 10 }
-        ]; // Fallback, will be overridden by Sheet5 sync
-        let currentTempEntry = {};
-        let activeMidSessionId = null;
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDtKN3XTdXYFtCgHd3QKp-zDY7KpB5AZD-LWkSPZnlX6VlhcY554TKlcqFgeaHwUHsTw/exec";
 
-        /* ==============================================================
-           1. VIRTUAL HISTORY ROUTER (POPSTATE INTERCEPT)
-        ============================================================== */
-        let modalStack = [];
-        window.history.pushState({ page: "root" }, "", "");
-
-        window.addEventListener("popstate", (e) => {
-            if (modalStack.length > 0) {
-                // If a modal is open, pop it and maintain app state
-                const activeModal = modalStack.pop();
-                document.getElementById(activeModal).style.display = "none";
-                window.history.pushState({ page: "modal-open" }, "", ""); 
-                stopCamera(); // Safety cleanup
-            } else {
-                // Prevent exiting app accidentally
-                window.history.pushState({ page: "root" }, "", "");
-            }
-        });
-
-        function openModal(id) {
-            modalStack.push(id);
-            window.history.pushState({ page: "modal-open" }, "", "");
-            document.getElementById(id).style.display = "flex";
-        }
-
-        function closeModal(id) {
-            const index = modalStack.indexOf(id);
-            if (index > -1) {
-                modalStack.splice(index, 1);
-                document.getElementById(id).style.display = "none";
-                stopCamera();
-            }
-        }
-
-        /* ==============================================================
-           2. SYSTEM UNLOCK & HARDWARE INIT (AUDIO/WORKER BYPASS)
-        ============================================================== */
-        let ttsUnlocked = false;
-        let clockWorker;
-
-        function initializeEngine() {
-            // Unlock Audio Context immediately on gesture
-            const unlockUtterance = new SpeechSynthesisUtterance('');
-            window.speechSynthesis.speak(unlockUtterance);
-            ttsUnlocked = true;
-
-            // Restrict Audit Date Picker to Max 3 Months
-            const today = new Date();
-            const minDate = new Date(today.setMonth(today.getMonth() - 3)).toISOString().split('T')[0];
-            document.getElementById('audit-date').setAttribute('min', minDate);
-            document.getElementById('audit-date').setAttribute('max', new Date().toISOString().split('T')[0]);
-
-            // Hide overlay
-            document.getElementById('system-unlock').style.display = 'none';
-
-            // Init Background Worker
-            initWebWorker();
-            
-            // Mock fetching Sheet 5 inventory
-            renderRentals();
-        }
-
-        /* ==============================================================
-           3. BACKGROUND WEB WORKER CLOCK ENGINE (IST CALIBRATED)
-        ============================================================== */
-        function initWebWorker() {
-            // Define worker inline to maintain single file architecture
-            const workerCode = `
-                function getISTTime() {
-                    const date = new Date();
-                    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-                    return new Date(utc + (3600000 * 5.5)).getTime(); // +5:30
-                }
-
-                self.onmessage = function(e) {
-                    if(e.data.type === 'SYNC') {
-                        let sessions = e.data.sessions;
-                        let now = getISTTime();
-                        
-                        sessions.forEach(s => {
-                            let diff = s.stopTime - now;
-                            s.remaining = diff > 0 ? diff : 0;
-                        });
-
-                        // Priority Sorting Rule: < 3 mins (180000 ms) float to top
-                        sessions.sort((a, b) => {
-                            if (a.remaining < 180000 && b.remaining >= 180000) return -1;
-                            if (b.remaining < 180000 && a.remaining >= 180000) return 1;
-                            return a.remaining - b.remaining;
-                        });
-
-                        self.postMessage({ type: 'TICK', sessions: sessions });
+        /* =========================================================================
+           1. SPA POPSTATE HISTORY INTERCEPTOR MATRIX
+           ========================================================================= */
+        const Router = {
+            stack: [],
+            init() {
+                history.pushState({ level: 0 }, document.title, location.href);
+                window.addEventListener('popstate', (e) => {
+                    if (this.stack.length > 0) {
+                        const topModal = this.stack.pop();
+                        document.getElementById(topModal).style.display = 'none';
+                        // Re-trap back button to prevent app exit
+                        history.pushState({ level: this.stack.length }, document.title, location.href);
+                    } else {
+                        // Trap root exit
+                        history.pushState({ level: 0 }, document.title, location.href);
                     }
-                };
-
-                setInterval(() => {
-                    self.postMessage({ type: 'REQUEST_SYNC' });
-                }, 1000);
-            `;
-            
-            const blob = new Blob([workerCode], { type: "application/javascript" });
-            clockWorker = new Worker(URL.createObjectURL(blob));
-
-            clockWorker.onmessage = function(e) {
-                if (e.data.type === 'REQUEST_SYNC') {
-                    clockWorker.postMessage({ type: 'SYNC', sessions: activeSessions });
-                } else if (e.data.type === 'TICK') {
-                    activeSessions = e.data.sessions;
-                    renderLiveGrid();
-                    checkTTSAlerts();
-                }
-            };
-        }
-
-        function checkTTSAlerts() {
-            if (!ttsUnlocked) return;
-            activeSessions.forEach(session => {
-                if (session.remaining === 0 && !session.alerted) {
-                    session.alerted = true; // Prevent loop
-                    dispatchTTS(session.name);
-                }
-            });
-        }
-
-        function dispatchTTS(name) {
-            const msg = new SpeechSynthesisUtterance(`Attention! ${name} ka time poora ho chuka hai`);
-            msg.lang = 'hi-IN';
-            msg.rate = 0.9;
-            window.speechSynthesis.speak(msg);
-        }
-
-        /* ==============================================================
-           4. UI & FORM CONTROLS
-        ============================================================== */
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        function selectFee(amount, el) {
-            document.querySelectorAll('.fee-btn').forEach(btn => btn.classList.remove('active'));
-            el.classList.add('active');
-            document.getElementById('entry-fee').value = amount;
-        }
-
-        function renderRentals() {
-            const grid = document.getElementById('entry-rentals');
-            grid.innerHTML = '';
-            rentalInventory.forEach((item, index) => {
-                grid.innerHTML += `
-                    <label class="rental-item">
-                        <span>${item.name} (₹${item.fee})</span>
-                        <input type="checkbox" value="${index}" class="rental-checkbox">
-                    </label>
-                `;
-            });
-        }
-
-        /* ==============================================================
-           5. CAMERA ENGINE & CANVAS COMPRESSION (400x400)
-        ============================================================== */
-        let stream = null;
-
-        async function openCameraModal() {
-            const name = document.getElementById('entry-name').value;
-            const mobile = document.getElementById('entry-mobile').value;
-            if (!name || !mobile) { alert("Please fill Name and Mobile."); return; }
-            
-            openModal('modal-camera');
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                document.getElementById('camera-feed').srcObject = stream;
-            } catch (err) {
-                alert("Camera access denied or unavailable.");
-            }
-        }
-
-        function stopCamera() {
-            if (stream) stream.getTracks().forEach(track => track.stop());
-        }
-
-        function captureAndCompress() {
-            const video = document.getElementById('camera-feed');
-            const canvas = document.getElementById('hidden-canvas');
-            const ctx = canvas.getContext('2d');
-            
-            canvas.width = 400; canvas.height = 400;
-            
-            // Center crop logic
-            const size = Math.min(video.videoWidth, video.videoHeight);
-            const startX = (video.videoWidth - size) / 2;
-            const startY = (video.videoHeight - size) / 2;
-            
-            ctx.drawImage(video, startX, startY, size, size, 0, 0, 400, 400);
-            
-            // High compression JPEG output (75% quality)
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
-            
-            stopCamera();
-            closeModal('modal-camera');
-            generateInvoice(compressedBase64);
-        }
-
-        /* ==============================================================
-           6. INVOICE GENERATION & SHEET 1/2 API PAYLOAD
-        ============================================================== */
-        function generateInvoice(imageBase64) {
-            const baseFee = parseInt(document.getElementById('entry-fee').value);
-            let rentalQty = 0;
-            let rentalFee = 0;
-            
-            const selectedRentals = document.querySelectorAll('#tab-entry .rental-checkbox:checked');
-            selectedRentals.forEach(cb => {
-                const item = rentalInventory[cb.value];
-                rentalQty += 1;
-                rentalFee += item.fee;
-            });
-
-            const grandTotal = baseFee + rentalFee;
-
-            currentTempEntry = {
-                id: 'SESS_' + Date.now(),
-                name: document.getElementById('entry-name').value,
-                village: document.getElementById('entry-village').value,
-                mobile: document.getElementById('entry-mobile').value,
-                fee: baseFee,
-                rentalQty: rentalQty,
-                rentalFee: rentalFee,
-                total: grandTotal,
-                photo: imageBase64,
-                // Stop Time = IST Current + 1 Hour (3600000 ms)
-                stopTime: getISTTime() + 3600000, 
-                alerted: false
-            };
-
-            const html = `
-                <div style="display:flex; justify-content:space-between;"><span>Name:</span> <strong>${currentTempEntry.name}</strong></div>
-                <div style="display:flex; justify-content:space-between;"><span>Base Fee:</span> <strong>₹${baseFee}</strong></div>
-                <div style="display:flex; justify-content:space-between;"><span>Rental Fee (${rentalQty} items):</span> <strong>₹${rentalFee}</strong></div>
-                <hr style="margin: 10px 0; border: 0; border-top: 1px solid #ccc;">
-                <div style="display:flex; justify-content:space-between; font-size:1.3rem;"><span>GRAND TOTAL:</span> <strong>₹${grandTotal}</strong></div>
-            `;
-            
-            document.getElementById('invoice-details').innerHTML = html;
-            openModal('modal-invoice');
-        }
-
-        async function submitFinalEntry() {
-            document.getElementById('submit-loader').style.display = 'block';
-            
-            try {
-                // Background execution simulating the Sheet Write Pipeline.
-                // In production, send POST to GAS_URL action='addEntry'
-                const payload = {
-                    action: 'addEntry',
-                    data: currentTempEntry
-                };
-                
-                await fetch(GAS_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // Bypass CORS for GAS
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
                 });
-                
-            } catch(e) {
-                console.error("Network silent fail. Updating local state securely.");
+            },
+            openModal(id) {
+                this.stack.push(id);
+                history.pushState({ level: this.stack.length }, document.title, location.href);
+                document.getElementById(id).style.display = 'flex';
+            },
+            closeModal(id) {
+                const idx = this.stack.indexOf(id);
+                if (idx > -1) {
+                    this.stack.splice(idx, 1);
+                    document.getElementById(id).style.display = 'none';
+                    history.back(); // Physically trigger popstate to keep stack aligned
+                }
             }
+        };
 
-            // Update Local Array
-            activeSessions.push(currentTempEntry);
-            
-            // Clean Form Inputs completely (Wiping Logic layer 1)
-            document.getElementById('entry-name').value = '';
-            document.getElementById('entry-mobile').value = '';
-            document.getElementById('entry-village').value = '';
-            document.querySelectorAll('.rental-checkbox').forEach(cb => cb.checked = false);
-            
-            document.getElementById('submit-loader').style.display = 'none';
-            closeModal('modal-invoice');
-            
-            // Auto-Transition to Live Pool
-            switchTab('tab-live');
-            renderLiveGrid();
-        }
+        /* =========================================================================
+           2. PWA TAB MANAGER & WAKE LOCK
+           ========================================================================= */
+        const WakeLockEngine = {
+            wakeLock: null,
+            async request() {
+                if ('wakeLock' in navigator) {
+                    try { this.wakeLock = await navigator.wakeLock.request('screen'); } 
+                    catch (err) { console.error('Wake Lock failed', err); }
+                }
+            },
+            release() {
+                if (this.wakeLock) { this.wakeLock.release().then(() => { this.wakeLock = null; }); }
+            }
+        };
 
-        function getISTTime() {
-            const date = new Date();
-            const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-            return new Date(utc + (3600000 * 5.5)).getTime();
-        }
+        const TabManager = {
+            init() {
+                const tabs = document.querySelectorAll('.nav-tab');
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        tabs.forEach(t => t.classList.remove('active'));
+                        e.target.classList.add('active');
+                        
+                        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+                        document.getElementById(e.target.dataset.target).classList.add('active');
 
-        /* ==============================================================
-           7. LIVE POOL REAL-TIME RENDERER & ACTIONS
-        ============================================================== */
-        function formatTime(ms) {
-            if (ms <= 0) return "00:00:00";
-            let totalSeconds = Math.floor(ms / 1000);
-            let hours = Math.floor(totalSeconds / 3600);
-            let minutes = Math.floor((totalSeconds % 3600) / 60);
-            let seconds = totalSeconds % 60;
-            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
+                        if(e.target.dataset.target === 'tab-pool') WakeLockEngine.request();
+                        else WakeLockEngine.release();
+                    });
+                });
+            }
+        };
 
-        function renderLiveGrid() {
-            const grid = document.getElementById('live-pool-grid');
-            grid.innerHTML = '';
+        /* =========================================================================
+           3. BACKGROUND TEXT-TO-SPEECH AUDIO ENGINE
+           ========================================================================= */
+        const VoiceEngine = {
+            isAuthorized: false,
+            initHook() {
+                document.getElementById('btn-initialize').addEventListener('click', () => {
+                    const unlockUtterance = new SpeechSynthesisUtterance('');
+                    window.speechSynthesis.speak(unlockUtterance);
+                    this.isAuthorized = true;
+                    document.getElementById('modal-audio').style.display = 'none';
+                    Router.init(); 
+                    TabManager.init();
+                    InventoryEngine.fetch();
+                    AuditEngine.initDateLimits();
+                });
+            },
+            dispatchAlert(customerName) {
+                if (!this.isAuthorized) return;
+                const msg = new SpeechSynthesisUtterance(`Attention! ${customerName} ka time poora ho chuka hai.`);
+                msg.lang = 'hi-IN'; msg.rate = 0.9;
+                window.speechSynthesis.speak(msg);
+            }
+        };
+
+        /* =========================================================================
+           4. REAR CAMERA & HTML5 CANVAS COMPRESSION ENGINE
+           ========================================================================= */
+        const CameraEngine = {
+            stream: null,
+            photoBase64: null,
             
-            activeSessions.forEach(session => {
-                const isCritical = session.remaining < 180000; // Under 3 mins
-                const timerString = formatTime(session.remaining);
+            async start() {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    const video = document.getElementById('cam-video');
+                    video.srcObject = this.stream;
+                    video.style.display = 'block';
+                    document.getElementById('cam-placeholder').style.display = 'none';
+                    document.getElementById('cam-preview').style.display = 'none';
+                    
+                    document.getElementById('btn-start-cam').classList.add('hidden');
+                    document.getElementById('btn-capture-cam').classList.remove('hidden');
+                    document.getElementById('btn-retake-cam').classList.add('hidden');
+                } catch (err) { alert("Camera access denied or unavailable."); }
+            },
+
+            capture() {
+                const video = document.getElementById('cam-video');
+                const canvas = document.getElementById('compression-canvas');
+                const ctx = canvas.getContext('2d');
+
+                // Square Math Crop Logic
+                const size = Math.min(video.videoWidth, video.videoHeight);
+                const startX = (video.videoWidth - size) / 2;
+                const startY = (video.videoHeight - size) / 2;
+
+                // Max Output 400x400
+                canvas.width = 400; canvas.height = 400;
+                ctx.drawImage(video, startX, startY, size, size, 0, 0, 400, 400);
+
+                // 0.75 Compression Quality
+                this.photoBase64 = canvas.toDataURL('image/jpeg', 0.75);
+
+                // Stop Stream
+                this.stream.getTracks().forEach(track => track.stop());
+                video.style.display = 'none';
+
+                // Show Preview
+                const preview = document.getElementById('cam-preview');
+                preview.src = this.photoBase64;
+                preview.style.display = 'block';
+
+                // UI Toggle
+                document.getElementById('btn-capture-cam').classList.add('hidden');
+                document.getElementById('btn-retake-cam').classList.remove('hidden');
+            },
+
+            retake() {
+                this.photoBase64 = null;
+                this.start();
+            }
+        };
+
+        /* =========================================================================
+           5. DYNAMIC SHEET5 INVENTORY RETRIEVAL
+           ========================================================================= */
+        const InventoryEngine = {
+            async fetch() {
+                try {
+                    // Force text/plain or jsonp workaround. Using standard fetch for doGet.
+                    const response = await fetch(`${APPS_SCRIPT_URL}?action=getRentalItems`);
+                    const data = await response.json();
+                    this.render(data);
+                } catch (error) {
+                    console.error("Inventory Fetch Failed:", error);
+                    document.getElementById('dynamic-rental-grid').innerHTML = `<span style="color:var(--danger-red); font-size:12px;">Failed to load inventory. Check connection.</span>`;
+                }
+            },
+            render(items) {
+                const grid = document.getElementById('dynamic-rental-grid');
+                grid.innerHTML = '';
+                if(!items || items.length === 0) {
+                    grid.innerHTML = '<span style="color:#555; font-size:12px;">No inventory found.</span>';
+                    return;
+                }
+                items.forEach((item, index) => {
+                    const label = document.createElement('label');
+                    label.className = 'rental-item';
+                    label.innerHTML = `<input type="checkbox" class="rental-chk" data-name="${item.name}" value="${item.fee}"> ${item.name} (₹${item.fee})`;
+                    grid.appendChild(label);
+                });
+            }
+        };
+
+        /* =========================================================================
+           6. TAB C AUDIT TERMINAL ENGINE
+           ========================================================================= */
+        const AuditEngine = {
+            initDateLimits() {
+                const input = document.getElementById('audit-date');
+                const today = new Date();
+                const threeMonthsAgo = new Date();
+                threeMonthsAgo.setMonth(today.getMonth() - 3);
                 
-                grid.innerHTML += `
-                    <div class="live-card ${isCritical ? 'critical' : ''}" id="${session.id}">
-                        <div class="card-header">
-                            <img src="${session.photo}" class="card-pfp" onclick="showHDImage('${session.photo}')">
-                            <div class="card-info">
-                                <div class="card-name">${session.name}</div>
-                                <div class="card-timer">${timerString}</div>
-                            </div>
+                input.max = today.toISOString().split('T')[0];
+                input.min = threeMonthsAgo.toISOString().split('T')[0];
+                input.value = today.toISOString().split('T')[0]; // Default to today
+            },
+            async fetchData() {
+                const dateVal = document.getElementById('audit-date').value;
+                const statusText = document.getElementById('audit-status');
+                const revDisplay = document.getElementById('audit-revenue');
+                
+                if(!dateVal) return;
+                
+                statusText.innerText = "Querying ledger...";
+                revDisplay.innerText = "₹---";
+                
+                try {
+                    const response = await fetch(`${APPS_SCRIPT_URL}?action=getAuditRevenue&date=${dateVal}`);
+                    const data = await response.json();
+                    revDisplay.innerText = `₹${data.revenue || 0}`;
+                    statusText.innerText = `Ledger sync complete for ${dateVal}.`;
+                } catch (err) {
+                    statusText.innerText = "Error fetching data. Check connection.";
+                    revDisplay.innerText = "₹ERR";
+                }
+            }
+        };
+
+        /* =========================================================================
+           7. INLINE WEB WORKER & CHRONOLOGICAL DOM SORTING
+           ========================================================================= */
+        const workerCode = `
+            let activeSessions = [];
+            self.onmessage = function(e) {
+                if (e.data.action === 'SYNC') { activeSessions = e.data.sessions; }
+            };
+
+            setInterval(() => {
+                const now = new Date().getTime(); 
+                const updates = [];
+                const alerts = [];
+                
+                activeSessions.forEach(session => {
+                    const msRemaining = session.stopTimeEpoch - now;
+                    const isCritical = msRemaining <= 180000; // < 3 mins
+                    
+                    if (msRemaining <= 0 && !session.alertFired) {
+                        session.alertFired = true;
+                        alerts.push({ id: session.id, name: session.name, type: 'EXPIRED' });
+                    }
+
+                    updates.push({ id: session.id, remaining: msRemaining, isCritical: isCritical });
+                });
+
+                self.postMessage({ type: 'TICK_UPDATE', payload: updates });
+                if(alerts.length > 0) self.postMessage({ type: 'ALERTS', payload: alerts });
+            }, 1000);
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const workerInstance = new Worker(URL.createObjectURL(blob));
+
+        let liveStateGraph = []; 
+
+        workerInstance.onmessage = function(e) {
+            if (e.data.type === 'ALERTS') {
+                e.data.payload.forEach(alert => {
+                    if(alert.type === 'EXPIRED') VoiceEngine.dispatchAlert(alert.name);
+                });
+                return;
+            }
+            if(e.data.type === 'TICK_UPDATE') {
+                const updates = e.data.payload;
+                // CHRONOLOGICAL SORTING ALGORITHM
+                updates.sort((a, b) => a.remaining - b.remaining);
+                
+                updates.forEach((update, index) => {
+                    const card = document.getElementById(`session-${update.id}`);
+                    if (card) {
+                        // Re-order DOM physically using flex/grid CSS Order
+                        card.style.order = index;
+                        
+                        // Update Timer Text
+                        const timerText = document.getElementById(`timer-${update.id}`);
+                        if(timerText) {
+                            let ms = update.remaining;
+                            if(ms < 0) ms = 0;
+                            const totalSec = Math.floor(ms / 1000);
+                            const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+                            const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+                            const s = String(totalSec % 60).padStart(2, '0');
+                            timerText.innerText = `${h}:${m}:${s}`;
+                        }
+                        
+                        // Handle Warning CSS
+                        if (update.isCritical && !card.classList.contains('critical')) {
+                            card.classList.add('critical');
+                        } else if (!update.isCritical && card.classList.contains('critical')) {
+                            card.classList.remove('critical');
+                        }
+                    }
+                });
+            }
+        };
+
+        /* =========================================================================
+           8. NETWORK MANAGER (OFFLINE QUEUE & CORS BYPASS)
+           ========================================================================= */
+        const NetworkManager = {
+            queue: JSON.parse(localStorage.getItem('offlineQueue') || '[]'),
+            init() {
+                window.addEventListener('online', () => this.flushQueue());
+                window.addEventListener('offline', () => {
+                    document.getElementById('network-status').style.display = 'block';
+                });
+                if(navigator.onLine) this.flushQueue();
+            },
+            saveQueue() {
+                localStorage.setItem('offlineQueue', JSON.stringify(this.queue));
+                if(!navigator.onLine) document.getElementById('network-status').style.display = 'block';
+            },
+            async dispatch(payload) {
+                if (!navigator.onLine) {
+                    this.queue.push(payload); this.saveQueue(); return;
+                }
+                try {
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(payload),
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    });
+                } catch (error) {
+                    this.queue.push(payload); this.saveQueue();
+                }
+            },
+            async flushQueue() {
+                document.getElementById('network-status').style.display = 'none';
+                if (this.queue.length === 0) return;
+                const currentQueue = [...this.queue];
+                this.queue = []; this.saveQueue();
+                for (let payload of currentQueue) await this.dispatch(payload);
+            }
+        };
+
+        /* =========================================================================
+           9. CORE APP CONTROLLER & DOM SKELETON
+           ========================================================================= */
+        const AppController = {
+            currentDraft: null,
+
+            previewInvoice() {
+                const name = document.getElementById('entry-name').value.trim();
+                const mobile = document.getElementById('entry-mobile').value.trim();
+                const baseFee = parseInt(document.getElementById('entry-fee').value);
+                const photo = CameraEngine.photoBase64;
+
+                if (!photo) return alert("Security Snapshot is mandatory.");
+                if (!name || mobile.length !== 10) return alert("Enter valid Name and 10-digit Mobile.");
+
+                // Calculate Rentals
+                let rentalQty = 0;
+                let rentalTotal = 0;
+                let rentalNames = [];
+                const checks = document.querySelectorAll('.rental-chk:checked');
+                checks.forEach(chk => {
+                    rentalQty++;
+                    rentalTotal += parseInt(chk.value);
+                    rentalNames.push(`${chk.dataset.name} (₹${chk.value})`);
+                });
+
+                const grandTotal = baseFee + rentalTotal;
+
+                this.currentDraft = {
+                    action: "createEntry", name: name, village: "Local", fee: baseFee, 
+                    mobile: mobile, rentalQuantity: rentalQty, discount: false, rentalFee: rentalTotal,
+                    photoData: photo
+                };
+
+                // Populate Modal
+                document.getElementById('inv-photo').src = photo;
+                const details = document.getElementById('inv-details');
+                details.innerHTML = `
+                    <div class="invoice-row"><span>Name:</span> <span>${name}</span></div>
+                    <div class="invoice-row"><span>Mobile:</span> <span>${mobile}</span></div>
+                    <div class="invoice-row"><span>Base Admission:</span> <span>₹${baseFee}</span></div>
+                    ${rentalQty > 0 ? `<div class="invoice-row" style="color:#888; font-size:12px;">Rentals: ${rentalNames.join(', ')}</div>` : ''}
+                    <div class="invoice-total"><span>GRAND TOTAL:</span> <span style="color:var(--accent);">₹${grandTotal}</span></div>
+                `;
+
+                Router.openModal('modal-invoice');
+            },
+
+            confirmEntry() {
+                const payload = this.currentDraft;
+                const stopTimeEpoch = new Date().getTime() + (60 * 60 * 1000); // IST +1 Hour
+                
+                const sessionNode = { 
+                    id: payload.mobile, name: payload.name, 
+                    stopTimeEpoch: stopTimeEpoch, alertFired: false, photo: payload.photoData 
+                };
+                
+                liveStateGraph.push(sessionNode);
+                workerInstance.postMessage({ action: 'SYNC', sessions: liveStateGraph });
+                this.renderCard(sessionNode);
+                
+                // Exclude heavy base64 from spreadsheet JSON payload to prevent apps script timeout
+                const dbPayload = { ...payload };
+                delete dbPayload.photoData; 
+                NetworkManager.dispatch(dbPayload);
+
+                // Reset Forms & State
+                document.getElementById('entry-name').value = '';
+                document.getElementById('entry-mobile').value = '';
+                document.querySelectorAll('.rental-chk').forEach(c => c.checked = false);
+                CameraEngine.retake();
+
+                Router.closeModal('modal-invoice');
+                document.querySelector('.nav-tab[data-target="tab-pool"]').click();
+            },
+
+            renderCard(session) {
+                const grid = document.getElementById('tab-pool');
+                const card = document.createElement('div');
+                card.className = 'session-card';
+                card.id = `session-${session.id}`;
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="swimmer-info">
+                            <img src="${session.photo}" class="swimmer-thumb">
+                            <h3 class="swimmer-name">${session.name}</h3>
                         </div>
-                        <div class="card-actions">
-                            <button class="btn-main btn-secondary" style="font-size: 0.9rem;" onclick="initMidSessionRental('${session.id}')">ADD RENTAL</button>
-                            <button class="btn-main btn-danger" style="font-size: 0.9rem;" onclick="endSession('${session.id}')">END</button>
-                        </div>
+                        <div class="timer-display" id="timer-${session.id}">--:--:--</div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-add" onclick="AppController.addRental('${session.id}')">+ ADD RENTAL</button>
+                        <button class="btn btn-end" onclick="AppController.endSession('${session.id}')">END</button>
                     </div>
                 `;
-            });
-        }
+                grid.appendChild(card);
+            },
 
-        function showHDImage(base64Str) {
-            document.getElementById('hd-image').src = base64Str;
-            openModal('modal-hd');
-        }
-
-        /* ==============================================================
-           8. MID-SESSION ADDITION & SESSION TERMINATION
-        ============================================================== */
-        function initMidSessionRental(id) {
-            activeMidSessionId = id;
-            const grid = document.getElementById('mid-session-rentals');
-            grid.innerHTML = '';
-            rentalInventory.forEach((item, index) => {
-                grid.innerHTML += `
-                    <label class="rental-item">
-                        <span>${item.name} (₹${item.fee})</span>
-                        <input type="checkbox" value="${index}" class="mid-rental-checkbox">
-                    </label>
-                `;
-            });
-            openModal('modal-add-rental');
-        }
-
-        async function confirmMidSessionRental() {
-            const selectedRentals = document.querySelectorAll('.mid-rental-checkbox:checked');
-            if(selectedRentals.length === 0) { closeModal('modal-add-rental'); return; }
-
-            let addedFee = 0;
-            let addedQty = 0;
-            selectedRentals.forEach(cb => {
-                const item = rentalInventory[cb.value];
-                addedQty += 1;
-                addedFee += item.fee;
-            });
-
-            // Locate session & mutate locally
-            const session = activeSessions.find(s => s.id === activeMidSessionId);
-            if(session) {
-                session.rentalQty += addedQty;
-                session.rentalFee += addedFee;
-                
-                // Fire async accumulator to Google Sheet (Sheet2 Logic)
-                try {
-                    fetch(GAS_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'addRental', id: activeMidSessionId, addedFee: addedFee, addedQty: addedQty })
-                    });
-                } catch(e) {}
-            }
-            
-            closeModal('modal-add-rental');
-        }
-
-        async function endSession(id) {
-            if(!confirm("End this session completely? Data will be wiped from Live View.")) return;
-            
-            // Delete from Google Sheet1 (Ephemeral erase rule)
-            try {
-                fetch(GAS_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'endSession', id: id })
+            addRental(id) {
+                const session = liveStateGraph.find(s => s.id === id);
+                if(!session) return;
+                alert(`Rental Engine: Added +1 Item (₹20) to ${session.name}.`);
+                NetworkManager.dispatch({
+                    action: "addMidSessionRental", name: session.name, mobile: id, additionalQty: 1, additionalFee: 20
                 });
-            } catch(e) {}
+            },
 
-            // Wipe locally
-            activeSessions = activeSessions.filter(s => s.id !== id);
-            renderLiveGrid();
-        }
+            endSession(id) {
+                const session = liveStateGraph.find(s => s.id === id);
+                if(!session) return;
+                
+                liveStateGraph = liveStateGraph.filter(s => s.id !== id);
+                workerInstance.postMessage({ action: 'SYNC', sessions: liveStateGraph });
+                
+                const card = document.getElementById(`session-${id}`);
+                if(card) card.remove();
 
-        /* ==============================================================
-           9. AUDIT DASHBOARD (MICRO-ANALYTICS)
-        ============================================================== */
-        async function fetchAuditData() {
-            const dateVal = document.getElementById('audit-date').value;
-            if(!dateVal) return;
-
-            document.getElementById('audit-loader').style.display = 'block';
-            document.getElementById('audit-revenue').innerText = '...';
-
-            try {
-                // In production, this GET request returns pure Base Entrance Fee sum for specific date
-                const res = await fetch(`${GAS_URL}?action=getAudit&date=${dateVal}`);
-                const data = await res.json(); 
-                // Assuming data = { baseRevenue: 5000 }
-                document.getElementById('audit-revenue').innerText = `₹${data.baseRevenue || 0}`;
-            } catch(e) {
-                // Fallback simulation if GAS strict CORS applies
-                setTimeout(() => {
-                     document.getElementById('audit-revenue').innerText = '₹' + (Math.floor(Math.random() * 2000) + 1000);
-                     document.getElementById('audit-loader').style.display = 'none';
-                }, 800);
+                NetworkManager.dispatch({ action: "endSession", name: session.name, mobile: id });
             }
-        }
+        };
+
+        window.onload = () => {
+            VoiceEngine.initHook();
+            NetworkManager.init();
+        };
     </script>
 </body>
 </html>
