@@ -2,7 +2,8 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Web App Mimicry: Hard-lock viewport to prevent pinch-to-zoom and zooming on input focus -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Stadium OS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -31,7 +32,28 @@
     <style>
         :root { color-scheme: dark; }
         [v-cloak] { display: none !important; }
-        body { background-color: #000000; color: #ffffff; }
+        
+        /* --- MILITARY-GRADE WEB RESTRICTION CSS --- */
+        body { 
+            background-color: #000000; 
+            color: #ffffff; 
+            overscroll-behavior-y: none; /* 6. Block Mobile Swipe-to-Refresh */
+            -webkit-touch-callout: none; /* 2. Block iOS context menu/popups on long press */
+            -webkit-user-select: none;   /* 3. Block Selection Safari */
+            -moz-user-select: none;      /* 3. Block Selection Firefox */
+            -ms-user-select: none;       /* 3. Block Selection IE/Edge */
+            user-select: none;           /* 3. Block Selection Standard */
+        }
+
+        /* Safety Clause: Re-enable text selection for actual form inputs ONLY */
+        input, textarea {
+            -webkit-user-select: auto;
+            -moz-user-select: auto;
+            -ms-user-select: auto;
+            user-select: auto;
+        }
+        /* ------------------------------------------ */
+
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
@@ -54,7 +76,7 @@
 <body class="antialiased overflow-x-hidden min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
     <div id="app" v-cloak class="flex-grow flex flex-col relative">
         
-        <!-- Loading Overlay (Now only shows if localStorage is entirely empty) -->
+        <!-- Loading Overlay -->
         <transition name="fade">
             <div v-if="isAppLoading" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
                 <div class="w-12 h-12 spinner border-brand-500 border-t-white"></div>
@@ -74,7 +96,6 @@
         <header class="w-full bg-surface h-16 relative z-40 border-b border-borderline">
             <div class="flex items-center justify-center h-full px-4 relative max-w-7xl mx-auto">
                 <div class="absolute left-4 flex items-center gap-3">
-                    <!-- HIDDEN SYNC MECHANISM: Clickable Logo -->
                     <img src="https://ik.imagekit.io/silentgamers/Picsart_25-09-18_22-04-02-455.jpg?updatedAt=1758214916821&ik-s=f760e9821930d21a57e973b1b1b92ce3d7611815" 
                          alt="Logo" loading="lazy" 
                          @click="forceSyncData"
@@ -104,7 +125,6 @@
                     <div class="bg-card rounded-2xl border border-borderline p-6 sm:p-8 relative overflow-hidden">
                         <form @submit.prevent="submitForm" class="relative z-10">
                             
-                            <!-- MOBILE INPUT -->
                             <div class="relative mb-6">
                                 <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Mobile ID</label>
                                 <div class="relative flex items-center">
@@ -133,7 +153,6 @@
                             <transition name="slide-down">
                                 <div v-show="formState !== 'hidden'" class="space-y-6">
                                     
-                                    <!-- Avatar Picker -->
                                     <div>
                                         <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Avatar Profile</label>
                                         <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide items-center">
@@ -142,14 +161,12 @@
                                                  :class="form.pfp === avatar && !showCustomPfpInput ? 'border-brand-500 scale-110' : 'border-transparent opacity-60 hover:opacity-100'">
                                                 <img :src="avatar" loading="lazy" class="w-full h-full rounded-full object-cover">
                                             </div>
-                                            <!-- Custom PFP Plus Icon -->
                                             <div @click="showCustomPfpInput = true; form.pfp = ''" 
                                                  class="w-14 h-14 shrink-0 rounded-full border-[3px] border-dashed flex items-center justify-center cursor-pointer transition-all duration-200"
                                                  :class="showCustomPfpInput ? 'border-brand-500 text-brand-500 scale-110' : 'border-[#444] text-neutral-500 hover:text-white'">
                                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                             </div>
                                         </div>
-                                        <!-- Custom Link Input -->
                                         <transition name="slide-down">
                                             <div v-if="showCustomPfpInput" class="mt-3">
                                                 <input type="url" v-model="form.pfp" placeholder="Paste custom image link here..." class="w-full px-4 py-3 rounded-xl border border-[#333] bg-[#1a1a1a] focus:border-brand-500 transition-all outline-none text-white text-sm">
@@ -206,7 +223,6 @@
             <transition name="fade" mode="out-in">
                 <section v-show="activeTab === 2">
                     
-                    <!-- Toggleable Header -->
                     <div class="flex justify-between items-end mb-6 cursor-pointer select-none group" @click="isGridView = !isGridView">
                         <div class="flex items-center gap-2">
                             <h2 class="text-2xl font-black text-white tracking-tight group-hover:text-brand-400 transition-colors">Active Roster</h2>
@@ -219,7 +235,6 @@
                         </div>
                     </div>
 
-                    <!-- Skeleton Loader for Roster -->
                     <div v-if="isAppLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         <div v-for="i in 8" :key="i" class="bg-card rounded-2xl border border-borderline p-4 flex items-center animate-pulse h-[88px]">
                             <div class="w-14 h-14 rounded-full bg-[#222] shrink-0"></div>
@@ -232,7 +247,6 @@
                     </div>
 
                     <div v-else>
-                        <!-- Original Detail View -->
                         <transition-group v-if="!isGridView" name="list" tag="div" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             <div v-for="player in activePlayersList" :key="player.mobileNumber" @click="openDetail(player)" class="bg-card rounded-2xl border border-borderline overflow-hidden cursor-pointer hover:border-[#444] transition-all duration-300 relative flex flex-col h-full group">
                                 <div class="h-1 w-full transition-colors duration-300" :class="player.colorState"></div>
@@ -252,7 +266,6 @@
                             </div>
                         </transition-group>
 
-                        <!-- PFP Grid View -->
                         <transition-group v-else name="list" tag="div" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                             <div v-for="player in activePlayersList" :key="'grid-'+player.mobileNumber" @click="openDetail(player)" class="bg-card rounded-2xl border border-borderline overflow-hidden cursor-pointer hover:border-brand-500 transition-all duration-300 h-32 relative group">
                                 <img :src="player.imageLink" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
@@ -301,7 +314,7 @@
             </transition>
         </main>
 
-        <!-- PFP Fullscreen Lightbox -->
+        <!-- Lightbox -->
         <transition name="fade">
             <div v-if="lightboxUrl" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md" @click="lightboxUrl = null">
                 <button class="absolute top-6 right-6 text-white hover:text-brand-400 transition-colors p-2" @click="lightboxUrl = null">
@@ -316,7 +329,6 @@
             <div v-if="selectedPlayer" class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm" @click="closeDetailModal">
                 <div class="bg-card border border-borderline rounded-3xl w-full max-w-md overflow-hidden transform transition-all shadow-2xl" @click.stop>
                     
-                    <!-- View Mode -->
                     <div v-if="!isEditingProfile">
                         <div class="relative bg-gradient-to-b from-[#1a1a1a] to-card pt-10 pb-8 flex flex-col items-center border-b border-[#222]">
                             <button @click="startEditProfile" class="absolute top-4 right-4 bg-[#222] text-neutral-300 hover:text-white hover:bg-[#333] px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-[#444]">
@@ -327,7 +339,6 @@
                             <p class="text-neutral-400 font-medium text-sm mt-1">{{ selectedPlayer.mobileNumber }} • {{ selectedPlayer.village }}</p>
                         </div>
                         
-                        <!-- Quick Actions (Call / WA) -->
                         <div class="flex gap-3 px-6 py-4 border-b border-[#222]">
                             <a :href="'tel:' + selectedPlayer.mobileNumber" class="flex-1 bg-[#064e3b]/40 hover:bg-[#064e3b]/80 text-[#34d399] border border-[#047857]/50 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm transition-all">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>
@@ -367,7 +378,6 @@
                         </div>
                     </div>
 
-                    <!-- Edit Mode -->
                     <div v-else class="p-6 max-h-[85vh] overflow-y-auto scrollbar-hide">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-xl font-black text-white">Edit Profile</h3>
@@ -436,6 +446,54 @@
 
     </div>
 
+    <!-- --- MILITARY-GRADE WEB RESTRICTION SCRIPT --- -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Block Context Menu & 5. Drag and Drop globally
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.addEventListener('dragstart', e => e.preventDefault());
+
+            // 3. Block Copy, Cut, Paste (Safely exempted for inputs)
+            const preventClipboard = (e) => {
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                }
+            };
+            ['copy', 'cut', 'paste'].forEach(evt => document.addEventListener(evt, preventClipboard));
+
+            // 4. Keyboard Lockdowns (Zooming + DevTools + Text Selection)
+            document.addEventListener('keydown', e => {
+                const key = e.key.toLowerCase();
+                
+                // Block Ctrl+A / Cmd+A (Select All) globally, except inside input tags
+                if ((e.ctrlKey || e.metaKey) && key === 'a') {
+                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                        e.preventDefault();
+                    }
+                }
+                
+                // 1. Block Keyboard Zooming (Ctrl/Cmd + '+', '-', '=')
+                if ((e.ctrlKey || e.metaKey) && (key === '=' || key === '-' || key === '+')) {
+                    e.preventDefault();
+                }
+
+                // 4. Block Inspect Element / DevTools
+                if (key === 'f12') e.preventDefault(); // Block F12
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'j', 'c'].includes(key)) {
+                    e.preventDefault(); // Block Ctrl+Shift+I / J / C
+                }
+                if ((e.ctrlKey || e.metaKey) && key === 'u') {
+                    e.preventDefault(); // Block View Source (Ctrl+U / Cmd+Alt+U)
+                }
+            }, { passive: false });
+
+            // 1. Block trackpad / mouse-wheel zooming
+            document.addEventListener('wheel', e => {
+                if (e.ctrlKey || e.metaKey) e.preventDefault();
+            }, { passive: false });
+        });
+    </script>
+
     <script>
         const { createApp, ref, computed, watch, onMounted } = Vue;
 
@@ -466,7 +524,7 @@
             setup() {
                 const activeTab = ref(1);
                 const isAppLoading = ref(true);
-                const isSyncing = ref(false); // Used for the hidden logo rotation
+                const isSyncing = ref(false); 
                 const isSubmitting = ref(false);
                 const isDeactivating = ref(false);
                 const isCheckingUser = ref(false);
@@ -483,13 +541,11 @@
                 const sheet1 = ref([]);
                 const sheet2 = ref([]);
 
-                // HELPER: Persist local reactive states to browser storage
                 const updateCache = () => {
                     localStorage.setItem('stadium_players', JSON.stringify(sheet1.value));
                     localStorage.setItem('stadium_ledger', JSON.stringify(sheet2.value));
                 };
 
-                // INITIALIZATION: Zero-Loading Engine
                 const loadInitialData = async () => {
                     const cachedPlayers = localStorage.getItem('stadium_players');
                     const cachedLedger = localStorage.getItem('stadium_ledger');
@@ -497,9 +553,8 @@
                     if (cachedPlayers && cachedLedger) {
                         sheet1.value = JSON.parse(cachedPlayers);
                         sheet2.value = JSON.parse(cachedLedger);
-                        isAppLoading.value = false; // Bypass loading immediately
+                        isAppLoading.value = false; 
                     } else {
-                        // Only show loading and fetch if cache is entirely empty
                         isAppLoading.value = true;
                         isSyncing.value = true;
                         try {
@@ -518,9 +573,8 @@
                     }
                 };
 
-                // MANUAL SYNC: Hidden Logo Refetch Mechanism
                 const forceSyncData = async () => {
-                    if (isSyncing.value) return; // Prevent double-clicks
+                    if (isSyncing.value) return; 
                     isSyncing.value = true;
                     try {
                         const response = await fetch(GAS_WEB_APP_URL);
@@ -528,7 +582,7 @@
                         if (result.status === 'success') {
                             sheet1.value = result.data.sheet1 || [];
                             sheet2.value = result.data.sheet2 || [];
-                            updateCache(); // Overwrite old cache with fresh DB data
+                            updateCache(); 
                             showToast('Database Synced Successfully');
                         } else showToast('Sync Failed', 'error');
                     } catch (e) { showToast('Network Error', 'error'); } 
@@ -618,7 +672,7 @@
                                 }
                             }
                             
-                            updateCache(); // Save optimistic changes to Local Storage immediately
+                            updateCache(); 
                             
                             form.value = { mobileNumber: '', name: '', village: '', fee: 500, pfp: '', doj: '', edf: '' };
                             resetFormDates();
@@ -628,7 +682,6 @@
                     finally { isSubmitting.value = false; }
                 };
 
-                // DYNAMIC COMPUTATION: Days Remaining calculates precisely against the live date.
                 const calculateDays = (dateStr) => {
                     if (!dateStr) return 0; 
                     let edf = dayjs.tz(dateStr, "DD/MM/YYYY", "Asia/Kolkata").startOf('day');
@@ -707,7 +760,7 @@
                                     imageLink: payload.data.imageLink
                                 };
                             }
-                            updateCache(); // Sync Local Storage instantly
+                            updateCache(); 
                             closeDetailModal();
                         }
                     } catch(e) { showToast('Update Failed', 'error'); } 
@@ -731,7 +784,7 @@
                             if (pIdx !== -1) {
                                 sheet1.value[pIdx].status = false;
                             }
-                            updateCache(); // Sync Local Storage instantly
+                            updateCache(); 
                             closeDetailModal(); 
                         } 
                     } catch (e) { showToast('Error', 'error'); } 
@@ -759,7 +812,7 @@
 
                 onMounted(async () => {
                     resetFormDates();
-                    await loadInitialData(); // Boots instantly from cache
+                    await loadInitialData(); 
                     
                     const cm = getISTToday().format('MMMM YYYY');
                     if(availableMonths.value.includes(cm)) selectedAuditMonth.value = cm;
