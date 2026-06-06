@@ -2,7 +2,8 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Web App Mimicry: Hard-lock viewport to prevent pinch-to-zoom and zooming on input focus -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Stadium OS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -31,7 +32,28 @@
     <style>
         :root { color-scheme: dark; }
         [v-cloak] { display: none !important; }
-        body { background-color: #000000; color: #ffffff; }
+        
+        /* --- MILITARY-GRADE WEB RESTRICTION CSS --- */
+        body { 
+            background-color: #000000; 
+            color: #ffffff; 
+            overscroll-behavior-y: none; /* Block Mobile Swipe-to-Refresh */
+            -webkit-touch-callout: none; /* Block iOS context menu/popups */
+            -webkit-user-select: none;   /* Block Selection Safari */
+            -moz-user-select: none;      /* Block Selection Firefox */
+            -ms-user-select: none;       /* Block Selection IE/Edge */
+            user-select: none;           /* Block Selection Standard */
+        }
+
+        /* Safety Clause: Re-enable text selection for actual form inputs ONLY */
+        input, textarea {
+            -webkit-user-select: auto;
+            -moz-user-select: auto;
+            -ms-user-select: auto;
+            user-select: auto;
+        }
+        /* ------------------------------------------ */
+
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
@@ -413,6 +435,54 @@
         </transition>
 
     </div>
+
+    <!-- --- MILITARY-GRADE WEB RESTRICTION SCRIPT --- -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Block Context Menu & Drag and Drop globally
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.addEventListener('dragstart', e => e.preventDefault());
+
+            // Block Copy, Cut, Paste (Safely exempted for inputs)
+            const preventClipboard = (e) => {
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                }
+            };
+            ['copy', 'cut', 'paste'].forEach(evt => document.addEventListener(evt, preventClipboard));
+
+            // Keyboard Lockdowns (Zooming + DevTools + Text Selection)
+            document.addEventListener('keydown', e => {
+                const key = e.key.toLowerCase();
+                
+                // Block Ctrl+A / Cmd+A (Select All) globally, except inside input tags
+                if ((e.ctrlKey || e.metaKey) && key === 'a') {
+                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                        e.preventDefault();
+                    }
+                }
+                
+                // Block Keyboard Zooming (Ctrl/Cmd + '+', '-', '=')
+                if ((e.ctrlKey || e.metaKey) && (key === '=' || key === '-' || key === '+')) {
+                    e.preventDefault();
+                }
+
+                // Block Inspect Element / DevTools
+                if (key === 'f12') e.preventDefault(); // Block F12
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'j', 'c'].includes(key)) {
+                    e.preventDefault(); // Block Ctrl+Shift+I / J / C
+                }
+                if ((e.ctrlKey || e.metaKey) && key === 'u') {
+                    e.preventDefault(); // Block View Source (Ctrl+U / Cmd+Alt+U)
+                }
+            }, { passive: false });
+
+            // Block trackpad / mouse-wheel zooming
+            document.addEventListener('wheel', e => {
+                if (e.ctrlKey || e.metaKey) e.preventDefault();
+            }, { passive: false });
+        });
+    </script>
 
     <script>
         const { createApp, ref, computed, watch, onMounted } = Vue;
