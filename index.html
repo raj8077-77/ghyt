@@ -1,518 +1,782 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#000000">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Smart Pool Live</title>
-    
-    <style>
-        /* CORE VARIABLES & RESET */
-        :root {
-            --bg-dark: #0f0f11; --bg-card: #1a1a1e; --primary: #4f46e5;
-            --text-main: #f8fafc; --text-muted: #94a3b8; --alert-red: #ef4444;
-            --success-green: #10b981; --border: #27272a;
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stadium OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#eff6ff', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb' },
+                        surface: '#0a0a0a',
+                        card: '#111111',
+                        borderline: '#262626'
+                    },
+                    boxShadow: { 'floating': '0 20px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.3)' }
+                }
+            }
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--bg-dark); color: var(--text-main); overflow-x: hidden; }
-
-        #system-unlock { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
-        .btn-unlock { background: var(--primary); color: white; border: none; padding: 18px 32px; font-size: 1.1rem; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px; }
-
-        header { position: relative; height: 70px; background: #000000; width: 100%; border-bottom: 1px solid var(--border); }
-        .header-left { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 10px; }
-        .header-left img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
-        .network-status { width: 10px; height: 10px; border-radius: 50%; background: var(--success-green); box-shadow: 0 0 8px var(--success-green); }
-        .network-status.offline { background: var(--alert-red); box-shadow: 0 0 8px var(--alert-red); }
-
-        .header-right { position: absolute; right: 50%; top: 50%; transform: translateY(-50%); }
-        .brand-asset { height: 30px; object-fit: contain; padding-right: 15px; filter: brightness(0) invert(1); opacity: 0.9; }
-
-        nav { display: flex; background: var(--bg-card); position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border); }
-        .nav-tab { flex: 1; text-align: center; padding: 16px 0; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s ease; }
-        .nav-tab.active { color: var(--text-main); border-bottom-color: var(--primary); }
-
-        .tab-view { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
-        .tab-view.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .input-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; }
-        input[type="text"], input[type="number"], input[type="date"] { width: 100%; padding: 14px; background: #000; border: 1px solid var(--border); color: white; border-radius: 8px; font-size: 1rem; }
-        .fee-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .fee-btn { background: #000; border: 1px solid var(--border); padding: 14px; text-align: center; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold; color: var(--text-muted); }
-        .fee-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-
-        .rental-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px;}
-        .rental-item { display: flex; justify-content: space-between; align-items: center; background: #000; padding: 14px; border: 1px solid var(--border); border-radius: 8px; }
-        .rental-item input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--primary); }
-
-        .btn-main { width: 100%; padding: 16px; background: white; color: black; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 800; cursor: pointer; }
-        .btn-secondary { background: var(--bg-card); color: white; border: 1px solid var(--border); }
-        .btn-danger { background: var(--alert-red); color: white; }
-
-        .live-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        .live-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; transition: all 0.3s; }
-        .live-card.critical { border-color: var(--alert-red); background: rgba(239, 68, 68, 0.1); animation: pulse-red 1.5s infinite; }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
-        .card-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
-        .card-pfp { width: 60px; height: 60px; border-radius: 10px; object-fit: cover; cursor: pointer; background: #000; }
-        .card-info { flex: 1; }
-        .card-name { font-size: 1.1rem; font-weight: bold; margin-bottom: 4px; }
-        .card-timer { font-size: 1.5rem; font-family: monospace; font-weight: bold; color: var(--primary); }
-        .live-card.critical .card-timer { color: var(--alert-red); }
-        .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background: var(--bg-card); width: 100%; max-width: 400px; padding: 20px; border-radius: 12px; }
-        #camera-feed { width: 100%; border-radius: 8px; background: #000; margin-bottom: 15px; aspect-ratio: 1; object-fit: cover;}
-        .loader { display: none; text-align: center; padding: 20px; color: var(--primary); font-weight: bold;}
+    </script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.9/dayjs.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.9/plugin/utc.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.9/plugin/timezone.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.9/plugin/customParseFormat.js"></script>
+    <style>
+        :root { color-scheme: dark; }
+        [v-cloak] { display: none !important; }
+        body { background-color: #000000; color: #ffffff; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(10px); }
+        .slide-down-enter-active, .slide-down-leave-active { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); max-height: 1000px; overflow: hidden; opacity: 1; }
+        .slide-down-enter-from, .slide-down-leave-to { max-height: 0; opacity: 0; }
+        .list-enter-active, .list-leave-active { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .list-enter-from { opacity: 0; transform: translateY(20px) scale(0.95); }
+        .list-leave-to { opacity: 0; transform: scale(0.95); }
+        .list-move { transition: transform 0.4s ease; }
+        .spinner { border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; border-top-color: #3b82f6; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
         
-        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: none; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        #syncing-banner { display: none; background: var(--primary); color: white; padding: 8px; text-align: center; font-size: 0.85rem; font-weight: bold; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body>
-
-    <div id="system-unlock">
-        <img src="https://ik.imagekit.io/5lz94dan6e/Xeno%20Goku%20pfp.jpeg?updatedAt=1775535282589" alt="Logo" style="width:100px; border-radius:50%; margin-bottom:20px;">
-        <h2>Initialize System Engine</h2>
-        <p style="color:#94a3b8; margin-top:10px; font-size:0.9rem;">Authorizes Device Sync & Background Audio</p>
-        <button class="btn-unlock" onclick="initializeEngine()">CONNECT SYSTEM</button>
-    </div>
-
-    <header>
-        <div class="header-left">
-            <img src="https://ik.imagekit.io/5lz94dan6e/Xeno%20Goku%20pfp.jpeg?updatedAt=1775535282589" alt="Profile">
-            <div id="network-indicator" class="network-status" title="Network Status"></div>
-        </div>
-        <div class="header-right">
-            <svg class="brand-asset" viewBox="0 0 100 30" preserveAspectRatio="xMidYMid meet">
-                <text x="0" y="22" font-family="sans-serif" font-weight="900" font-size="24" fill="white">POOL</text>
-            </svg>
-        </div>
-    </header>
-    <div id="syncing-banner">Syncing Multi-Device Live Data...</div>
-
-    <nav>
-        <div class="nav-tab active" onclick="switchTab('tab-entry')">Entry</div>
-        <div class="nav-tab" onclick="switchTab('tab-live')">Live Pool</div>
-        <div class="nav-tab" onclick="switchTab('tab-audit')">Audit</div>
-    </nav>
-
-    <!-- TAB A -->
-    <div id="tab-entry" class="tab-view active">
-        <div class="input-group">
-            <label>Name</label>
-            <input type="text" id="entry-name" placeholder="Enter full name" autocomplete="off">
-        </div>
-        <div class="input-group">
-            <label>Mobile Number</label>
-            <input type="number" id="entry-mobile" placeholder="10-digit mobile" autocomplete="off">
-        </div>
-        <div class="input-group">
-            <label>Village</label>
-            <input type="text" id="entry-village" placeholder="Location" autocomplete="off">
-        </div>
-        <div class="input-group">
-            <label>Base Entrance Fee (INR)</label>
-            <div class="fee-selector">
-                <div class="fee-btn active" onclick="selectFee(40, this)">40</div>
-                <div class="fee-btn" onclick="selectFee(50, this)">50</div>
+<body class="antialiased overflow-x-hidden min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+    <div id="app" v-cloak class="flex-grow flex flex-col relative">
+        
+        <!-- Loading Overlay (Now only shows if localStorage is entirely empty) -->
+        <transition name="fade">
+            <div v-if="isAppLoading" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
+                <div class="w-12 h-12 spinner border-brand-500 border-t-white"></div>
             </div>
-            <input type="hidden" id="entry-fee" value="40">
-        </div>
-        <div class="input-group">
-            <label>Rental Inventory</label>
-            <div class="rental-grid" id="entry-rentals">Loading items from Google Sheets...</div>
-        </div>
-        <button class="btn-main" onclick="openCameraModal()">CONFIRM & CAPTURE</button>
-    </div>
+        </transition>
 
-    <!-- TAB B -->
-    <div id="tab-live" class="tab-view">
-        <div class="live-grid" id="live-pool-grid"></div>
-    </div>
-
-    <!-- TAB C -->
-    <div id="tab-audit" class="tab-view">
-        <div class="input-group">
-            <label>Select Date</label>
-            <input type="date" id="audit-date" onchange="fetchAuditData()">
+        <!-- Toasts -->
+        <div class="fixed bottom-6 right-6 z-[90] flex flex-col gap-3 pointer-events-none">
+            <transition-group name="list">
+                <div v-for="toast in toasts" :key="toast.id" class="px-5 py-3.5 rounded-xl text-sm font-semibold flex items-center backdrop-blur-lg border shadow-lg" :class="toast.type === 'success' ? 'bg-[#064e3b]/80 text-[#34d399] border-[#047857]' : 'bg-[#7f1d1d]/80 text-[#fca5a5] border-[#b91c1c]'">
+                    {{ toast.msg }}
+                </div>
+            </transition-group>
         </div>
-        <div style="background: var(--bg-card); padding: 30px; border-radius: 12px; text-align: center; margin-top: 20px; border: 1px solid var(--border);">
-            <p style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Total Base Entrance Revenue</p>
-            <h1 id="audit-revenue" style="font-size: 3rem; margin-top: 10px; color: var(--text-main);">₹0</h1>
-            <p style="color: var(--alert-red); font-size: 0.75rem; margin-top: 10px;">*Excludes Rental Fees</p>
-        </div>
-        <div id="audit-loader" class="loader">Querying Ledger...</div>
-    </div>
 
-    <!-- MODALS -->
-    <div id="modal-camera" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 15px;">Facial Verification</h3>
-            <video id="camera-feed" autoplay playsinline></video>
-            <canvas id="hidden-canvas" style="display: none;"></canvas>
-            <button class="btn-main" onclick="captureAndCompress()">TAKE SNAPSHOT</button>
-            <button class="btn-main btn-secondary" style="margin-top: 10px;" onclick="closeModal('modal-camera')">CANCEL</button>
-        </div>
-    </div>
+        <!-- Header -->
+        <header class="w-full bg-surface h-16 relative z-40 border-b border-borderline">
+            <div class="flex items-center justify-center h-full px-4 relative max-w-7xl mx-auto">
+                <div class="absolute left-4 flex items-center gap-3">
+                    <!-- HIDDEN SYNC MECHANISM: Clickable Logo -->
+                    <img src="https://ik.imagekit.io/silentgamers/Picsart_25-09-18_22-04-02-455.jpg?updatedAt=1758214916821&ik-s=f760e9821930d21a57e973b1b1b92ce3d7611815" 
+                         alt="Logo" loading="lazy" 
+                         @click="forceSyncData"
+                         :class="{ 'animate-spin': isSyncing }"
+                         class="w-10 h-10 rounded-full border border-borderline object-cover shrink-0 cursor-pointer transition-transform duration-300">
+                    <h1 class="font-black text-xl tracking-widest uppercase text-white hidden sm:block">Stadium OS</h1>
+                </div>
+                <h1 class="font-black text-xl tracking-widest uppercase text-white sm:hidden">Stadium OS</h1>
+            </div>
+        </header>
 
-    <div id="modal-invoice" class="modal-overlay">
-        <div class="modal-content" style="background: white; color: black;">
-            <h2 style="text-align: center; margin-bottom: 20px; text-transform: uppercase; border-bottom: 2px dashed #ccc; padding-bottom: 10px;">Final Invoice</h2>
-            <div id="invoice-details" style="font-size: 1.1rem; line-height: 1.8; margin-bottom: 20px;"></div>
-            <button class="btn-main" style="background: var(--primary); color: white;" onclick="submitFinalEntry()">LOCK & SUBMIT</button>
-            <button class="btn-main" style="background: #f1f5f9; color: black; margin-top: 10px; border: 1px solid #ccc;" onclick="closeModal('modal-invoice')">EDIT</button>
-            <div id="submit-loader" class="loader" style="color:var(--primary);">Processing System Payload...</div>
-        </div>
-    </div>
+        <!-- Navigation -->
+        <nav class="sticky top-0 z-30 flex justify-center bg-black/80 backdrop-blur-xl border-b border-borderline py-3 px-4">
+            <div class="flex bg-card p-1 rounded-xl shadow-inner max-w-lg w-full relative border border-borderline">
+                <button @click="activeTab = 1" class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 relative z-10" :class="activeTab === 1 ? 'text-white' : 'text-neutral-500 hover:text-neutral-300'">Entry</button>
+                <button @click="activeTab = 2" class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 relative z-10" :class="activeTab === 2 ? 'text-white' : 'text-neutral-500 hover:text-neutral-300'">Live Roster</button>
+                <button @click="activeTab = 3" class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 relative z-10" :class="activeTab === 3 ? 'text-white' : 'text-neutral-500 hover:text-neutral-300'">Audit</button>
+                <div class="absolute top-1 bottom-1 w-[33.33%] bg-[#222] rounded-lg shadow-md transition-transform duration-300 ease-out z-0 border border-[#333]" :style="`transform: translateX(${(activeTab - 1) * 100}%);`"></div>
+            </div>
+        </nav>
 
-    <div id="modal-add-rental" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 15px;">Add Accessory</h3>
-            <div class="rental-grid" id="mid-session-rentals"></div>
-            <button class="btn-main" onclick="confirmMidSessionRental()">UPDATE LEDGER</button>
-            <button class="btn-main btn-secondary" style="margin-top: 10px;" onclick="closeModal('modal-add-rental')">CANCEL</button>
-        </div>
-    </div>
+        <main class="flex-grow p-4 md:p-8 max-w-7xl mx-auto w-full relative">
+            
+            <!-- TAB 1: FORM -->
+            <transition name="fade" mode="out-in">
+                <section v-show="activeTab === 1" class="max-w-xl mx-auto">
+                    <div class="bg-card rounded-2xl border border-borderline p-6 sm:p-8 relative overflow-hidden">
+                        <form @submit.prevent="submitForm" class="relative z-10">
+                            
+                            <!-- MOBILE INPUT -->
+                            <div class="relative mb-6">
+                                <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Mobile ID</label>
+                                <div class="relative flex items-center">
+                                    <input type="tel" v-model="form.mobileNumber" @input="onMobileInput" placeholder="9876543210" required
+                                           class="w-full px-4 py-4 rounded-xl border border-[#333] bg-[#1a1a1a] focus:bg-surface focus:border-brand-500 transition-all font-mono text-white outline-none placeholder:text-neutral-700 text-lg tracking-wide">
+                                    <div v-if="isCheckingUser" class="absolute right-4">
+                                        <div class="w-5 h-5 spinner border-[#333] border-t-brand-500"></div>
+                                    </div>
+                                </div>
+                            </div>
 
-    <div id="toast">Message</div>
+                            <transition name="fade">
+                                <div v-if="formState !== 'hidden'" class="mb-6 flex">
+                                    <div v-if="formState === 'new'" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-800 text-blue-400 text-xs font-bold uppercase tracking-wider">
+                                        <span class="w-2 h-2 rounded-full bg-blue-500 mr-2 animate-pulse"></span> New Entry
+                                    </div>
+                                    <div v-else-if="formState === 'active'" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-emerald-900/30 border border-emerald-800 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span> Active User
+                                    </div>
+                                    <div v-else-if="formState === 'deactivated'" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-red-900/30 border border-red-800 text-red-400 text-xs font-bold uppercase tracking-wider">
+                                        <span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span> Reactivate User
+                                    </div>
+                                </div>
+                            </transition>
+
+                            <transition name="slide-down">
+                                <div v-show="formState !== 'hidden'" class="space-y-6">
+                                    
+                                    <!-- Avatar Picker -->
+                                    <div>
+                                        <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Avatar Profile</label>
+                                        <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide items-center">
+                                            <div v-for="avatar in avatars" :key="avatar" @click="form.pfp = avatar; showCustomPfpInput = false"
+                                                 class="w-14 h-14 shrink-0 rounded-full border-[3px] cursor-pointer transition-all duration-200"
+                                                 :class="form.pfp === avatar && !showCustomPfpInput ? 'border-brand-500 scale-110' : 'border-transparent opacity-60 hover:opacity-100'">
+                                                <img :src="avatar" loading="lazy" class="w-full h-full rounded-full object-cover">
+                                            </div>
+                                            <!-- Custom PFP Plus Icon -->
+                                            <div @click="showCustomPfpInput = true; form.pfp = ''" 
+                                                 class="w-14 h-14 shrink-0 rounded-full border-[3px] border-dashed flex items-center justify-center cursor-pointer transition-all duration-200"
+                                                 :class="showCustomPfpInput ? 'border-brand-500 text-brand-500 scale-110' : 'border-[#444] text-neutral-500 hover:text-white'">
+                                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                            </div>
+                                        </div>
+                                        <!-- Custom Link Input -->
+                                        <transition name="slide-down">
+                                            <div v-if="showCustomPfpInput" class="mt-3">
+                                                <input type="url" v-model="form.pfp" placeholder="Paste custom image link here..." class="w-full px-4 py-3 rounded-xl border border-[#333] bg-[#1a1a1a] focus:border-brand-500 transition-all outline-none text-white text-sm">
+                                            </div>
+                                        </transition>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div>
+                                            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Full Name</label>
+                                            <input type="text" v-model="form.name" placeholder="Name" required class="w-full px-4 py-3 rounded-xl border border-[#333] bg-[#1a1a1a] focus:border-brand-500 transition-all outline-none text-white">
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Village</label>
+                                            <input type="text" v-model="form.village" placeholder="Location" required class="w-full px-4 py-3 rounded-xl border border-[#333] bg-[#1a1a1a] focus:border-brand-500 transition-all outline-none text-white">
+                                        </div>
+
+                                        <div class="md:col-span-2">
+                                            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Fee (₹)</label>
+                                            <div class="flex flex-wrap gap-2">
+                                                <button type="button" v-for="amt in [200, 250, 300, 500, 0]" :key="amt" 
+                                                        @click="form.fee = amt"
+                                                        class="px-5 py-2.5 rounded-xl border text-sm font-bold transition-all focus:outline-none"
+                                                        :class="form.fee === amt ? 'bg-brand-600 border-brand-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'bg-[#1a1a1a] border-[#333] text-neutral-400 hover:text-white'">
+                                                    {{ amt === 0 ? 'Free' : '₹ ' + amt }}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Join Date</label>
+                                            <input type="date" v-model="form.doj" required class="w-full px-4 py-3 rounded-xl border border-[#333] bg-[#1a1a1a] focus:border-brand-500 transition-all outline-none text-white cursor-pointer">
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Expire Date</label>
+                                            <input type="date" v-model="form.edf" required class="w-full px-4 py-3 rounded-xl border border-[#333] bg-[#1a1a1a] focus:border-brand-500 transition-all outline-none text-brand-400 cursor-pointer">
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" :disabled="isSubmitting" class="w-full mt-4 bg-white text-black hover:bg-neutral-200 font-bold py-4 px-4 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center disabled:opacity-50">
+                                        <span v-if="!isSubmitting">Add to Ledger</span>
+                                        <div v-else class="w-5 h-5 spinner border-neutral-400 border-t-black"></div>
+                                    </button>
+                                </div>
+                            </transition>
+                        </form>
+                    </div>
+                </section>
+            </transition>
+
+            <!-- TAB 2: LIVE ROSTER -->
+            <transition name="fade" mode="out-in">
+                <section v-show="activeTab === 2">
+                    
+                    <!-- Toggleable Header -->
+                    <div class="flex justify-between items-end mb-6 cursor-pointer select-none group" @click="isGridView = !isGridView">
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-2xl font-black text-white tracking-tight group-hover:text-brand-400 transition-colors">Active Roster</h2>
+                            <svg v-if="!isGridView" class="w-5 h-5 text-neutral-500 group-hover:text-brand-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                            <svg v-else class="w-5 h-5 text-neutral-500 group-hover:text-brand-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                        </div>
+                        <div class="bg-card border border-[#333] px-4 py-2 rounded-xl flex items-center">
+                            <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-2"></div>
+                            <span class="text-sm font-bold text-neutral-300">{{ activePlayersList.length }} Total</span>
+                        </div>
+                    </div>
+
+                    <!-- Skeleton Loader for Roster -->
+                    <div v-if="isAppLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <div v-for="i in 8" :key="i" class="bg-card rounded-2xl border border-borderline p-4 flex items-center animate-pulse h-[88px]">
+                            <div class="w-14 h-14 rounded-full bg-[#222] shrink-0"></div>
+                            <div class="ml-4 flex-grow space-y-2">
+                                <div class="h-4 bg-[#222] rounded w-3/4"></div>
+                                <div class="h-3 bg-[#1a1a1a] rounded w-1/2"></div>
+                            </div>
+                            <div class="w-12 h-10 rounded-lg bg-[#222] ml-2 shrink-0"></div>
+                        </div>
+                    </div>
+
+                    <div v-else>
+                        <!-- Original Detail View -->
+                        <transition-group v-if="!isGridView" name="list" tag="div" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            <div v-for="player in activePlayersList" :key="player.mobileNumber" @click="openDetail(player)" class="bg-card rounded-2xl border border-borderline overflow-hidden cursor-pointer hover:border-[#444] transition-all duration-300 relative flex flex-col h-full group">
+                                <div class="h-1 w-full transition-colors duration-300" :class="player.colorState"></div>
+                                <div class="p-4 flex items-center flex-grow">
+                                    <div class="relative w-14 h-14 shrink-0" @click.stop="openLightbox(player.imageLink)">
+                                        <img :src="player.imageLink" loading="lazy" class="w-14 h-14 rounded-full object-cover border border-[#333] group-hover:scale-105 transition-transform">
+                                    </div>
+                                    <div class="ml-4 flex-grow truncate">
+                                        <h3 class="font-bold text-white truncate text-lg">{{ player.name }}</h3>
+                                        <p class="text-xs font-medium text-neutral-500 mt-0.5">{{ player.village }}</p>
+                                    </div>
+                                    <div class="shrink-0 flex flex-col items-center justify-center px-3 py-1.5 rounded-lg ml-2 border" :class="player.badgeBgClass">
+                                        <span class="text-lg font-black leading-none" :class="player.badgeTextClass">{{ player.daysRemaining }}</span>
+                                        <span class="text-[9px] font-bold uppercase mt-0.5 opacity-80" :class="player.badgeTextClass">Days</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </transition-group>
+
+                        <!-- PFP Grid View -->
+                        <transition-group v-else name="list" tag="div" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                            <div v-for="player in activePlayersList" :key="'grid-'+player.mobileNumber" @click="openDetail(player)" class="bg-card rounded-2xl border border-borderline overflow-hidden cursor-pointer hover:border-brand-500 transition-all duration-300 h-32 relative group">
+                                <img :src="player.imageLink" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                            </div>
+                        </transition-group>
+                    </div>
+
+                </section>
+            </transition>
+
+            <!-- TAB 3: AUDIT -->
+            <transition name="fade" mode="out-in">
+                <section v-show="activeTab === 3" class="max-w-2xl mx-auto">
+                    <div class="bg-card rounded-3xl border border-borderline p-8 md:p-10">
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4">
+                            <h2 class="text-2xl font-black text-white tracking-tight">Ledger Audit</h2>
+                            <div class="relative w-full sm:w-48">
+                                <button @click="auditDropdownOpen = !auditDropdownOpen" class="w-full bg-[#1a1a1a] border border-[#333] px-4 py-3 rounded-xl flex justify-between items-center text-white font-bold text-sm">
+                                    {{ selectedAuditMonth || 'Loading...' }}
+                                    <svg class="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+                                <transition name="slide-down">
+                                    <div v-if="auditDropdownOpen" class="absolute z-50 mt-2 w-full bg-card border border-[#333] rounded-xl shadow-2xl overflow-hidden">
+                                        <button v-for="month in availableMonths" :key="month" @click="selectAuditMonth(month)" class="w-full text-left px-4 py-3 text-sm text-neutral-300 hover:bg-[#1a1a1a] hover:text-white transition-colors border-b border-[#222] last:border-0 font-medium">
+                                            {{ month }}
+                                        </button>
+                                    </div>
+                                </transition>
+                            </div>
+                        </div>
+
+                        <div class="rounded-3xl p-10 text-center shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#111] to-black border border-[#222]">
+                            <div v-if="isAppLoading" class="animate-pulse flex flex-col items-center">
+                                <div class="h-4 w-32 bg-[#222] rounded mb-6"></div>
+                                <div class="h-16 w-48 bg-[#222] rounded-lg"></div>
+                            </div>
+                            <div v-else class="relative z-10 flex flex-col items-center">
+                                <h4 class="text-neutral-500 font-bold tracking-widest uppercase text-xs mb-4">Gross Collected</h4>
+                                <div class="text-6xl md:text-7xl font-black tabular-nums tracking-tighter text-white">
+                                    <span class="text-brand-500 text-4xl mr-1 font-medium">₹</span>{{ formatCurrency(activeAuditData.totalFeeCollection) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </transition>
+        </main>
+
+        <!-- PFP Fullscreen Lightbox -->
+        <transition name="fade">
+            <div v-if="lightboxUrl" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md" @click="lightboxUrl = null">
+                <button class="absolute top-6 right-6 text-white hover:text-brand-400 transition-colors p-2" @click="lightboxUrl = null">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                <img :src="lightboxUrl" loading="lazy" class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl ring-1 ring-borderline" @click.stop>
+            </div>
+        </transition>
+
+        <!-- Detail & Edit Modal -->
+        <transition name="fade">
+            <div v-if="selectedPlayer" class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm" @click="closeDetailModal">
+                <div class="bg-card border border-borderline rounded-3xl w-full max-w-md overflow-hidden transform transition-all shadow-2xl" @click.stop>
+                    
+                    <!-- View Mode -->
+                    <div v-if="!isEditingProfile">
+                        <div class="relative bg-gradient-to-b from-[#1a1a1a] to-card pt-10 pb-8 flex flex-col items-center border-b border-[#222]">
+                            <button @click="startEditProfile" class="absolute top-4 right-4 bg-[#222] text-neutral-300 hover:text-white hover:bg-[#333] px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-[#444]">
+                                Edit Profile
+                            </button>
+                            <img :src="selectedPlayer.imageLink" loading="lazy" @click="openLightbox(selectedPlayer.imageLink)" class="w-24 h-24 rounded-full border-4 border-surface object-cover shadow-lg cursor-pointer hover:opacity-80 transition-opacity">
+                            <h3 class="text-2xl font-black text-white mt-4">{{ selectedPlayer.name }}</h3>
+                            <p class="text-neutral-400 font-medium text-sm mt-1">{{ selectedPlayer.mobileNumber }} • {{ selectedPlayer.village }}</p>
+                        </div>
+                        
+                        <!-- Quick Actions (Call / WA) -->
+                        <div class="flex gap-3 px-6 py-4 border-b border-[#222]">
+                            <a :href="'tel:' + selectedPlayer.mobileNumber" class="flex-1 bg-[#064e3b]/40 hover:bg-[#064e3b]/80 text-[#34d399] border border-[#047857]/50 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm transition-all">
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>
+                                Call
+                            </a>
+                            <a :href="'https://wa.me/' + formatWhatsApp(selectedPlayer.mobileNumber)" target="_blank" class="flex-1 bg-[#166534]/40 hover:bg-[#166534]/80 text-[#4ade80] border border-[#15803d]/50 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm transition-all">
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                WhatsApp
+                            </a>
+                        </div>
+
+                        <div class="px-6 py-4 grid gap-1 border-b border-[#222]">
+                            <div class="flex justify-between items-center py-3 border-b border-[#222]">
+                                <span class="text-neutral-500 text-xs font-bold uppercase tracking-wider">Current Fee</span>
+                                <span class="font-bold text-neutral-200">₹ {{ selectedPlayer.fee || 0 }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-3 border-b border-[#222]">
+                                <span class="text-neutral-500 text-xs font-bold uppercase tracking-wider">Join Date</span>
+                                <span class="font-bold text-neutral-200">{{ selectedPlayer.dateOfJoining }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-3 border-b border-[#222]">
+                                <span class="text-neutral-500 text-xs font-bold uppercase tracking-wider">Expire Date</span>
+                                <span class="font-bold text-neutral-200">{{ selectedPlayer.endDateOfFee }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-3">
+                                <span class="text-neutral-500 text-xs font-bold uppercase tracking-wider">Status</span>
+                                <span class="font-black" :class="selectedPlayer.textStatusClass">{{ selectedPlayer.daysRemaining }} Days Left</span>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6 grid gap-3">
+                            <button v-if="selectedPlayer.daysRemaining <= 0" @click="deactivatePlayer(selectedPlayer)" :disabled="isDeactivating" class="w-full bg-[#3f1616] text-[#fca5a5] hover:bg-[#591c1c] border border-[#7f1d1d] font-bold py-3.5 px-4 rounded-xl transition-all flex justify-center items-center">
+                                <span v-if="!isDeactivating">Terminate</span>
+                                <div v-else class="w-5 h-5 spinner border-[#fca5a5] border-t-transparent"></div>
+                            </button>
+                            <button @click="closeDetailModal" class="w-full bg-[#222] text-neutral-300 hover:bg-[#333] font-bold py-3.5 px-4 rounded-xl transition-colors">Close</button>
+                        </div>
+                    </div>
+
+                    <!-- Edit Mode -->
+                    <div v-else class="p-6 max-h-[85vh] overflow-y-auto scrollbar-hide">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-black text-white">Edit Profile</h3>
+                            <button @click="isEditingProfile = false" class="text-neutral-500 hover:text-white">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Avatar</label>
+                                <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide items-center">
+                                    <div v-for="avatar in avatars" :key="'edit-'+avatar" @click="editForm.pfp = avatar; showCustomEditPfp = false"
+                                         class="w-12 h-12 shrink-0 rounded-full border-2 cursor-pointer transition-all"
+                                         :class="editForm.pfp === avatar && !showCustomEditPfp ? 'border-brand-500 scale-110' : 'border-transparent opacity-50'">
+                                        <img :src="avatar" loading="lazy" class="w-full h-full rounded-full object-cover">
+                                    </div>
+                                    <div @click="showCustomEditPfp = true; editForm.pfp = ''" 
+                                         class="w-12 h-12 shrink-0 rounded-full border-2 border-dashed flex items-center justify-center cursor-pointer transition-all"
+                                         :class="showCustomEditPfp ? 'border-brand-500 text-brand-500 scale-110' : 'border-[#444] text-neutral-500'">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                    </div>
+                                </div>
+                                <transition name="slide-down">
+                                    <div v-if="showCustomEditPfp" class="mt-2">
+                                        <input type="url" v-model="editForm.pfp" placeholder="Paste image link here..." class="w-full px-3 py-2.5 rounded-lg border border-[#333] bg-[#1a1a1a] text-white outline-none focus:border-brand-500 text-sm">
+                                    </div>
+                                </transition>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="col-span-2">
+                                    <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">Mobile ID</label>
+                                    <input type="text" v-model="editForm.mobileNumber" class="w-full px-3 py-2.5 rounded-lg border border-[#333] bg-[#1a1a1a] text-white outline-none focus:border-brand-500">
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">Name</label>
+                                    <input type="text" v-model="editForm.name" class="w-full px-3 py-2.5 rounded-lg border border-[#333] bg-[#1a1a1a] text-white outline-none focus:border-brand-500">
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">Village</label>
+                                    <input type="text" v-model="editForm.village" class="w-full px-3 py-2.5 rounded-lg border border-[#333] bg-[#1a1a1a] text-white outline-none focus:border-brand-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">Join Date</label>
+                                    <input type="date" v-model="editForm.doj" class="w-full px-3 py-2.5 rounded-lg border border-[#333] bg-[#1a1a1a] text-white outline-none focus:border-brand-500 cursor-pointer">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-1">Expire Date</label>
+                                    <input type="date" v-model="editForm.edf" class="w-full px-3 py-2.5 rounded-lg border border-[#333] bg-[#1a1a1a] text-white outline-none focus:border-brand-500 cursor-pointer">
+                                </div>
+                            </div>
+                            
+                            <div class="pt-4 flex gap-3">
+                                <button @click="saveProfile" :disabled="isSavingProfile" class="flex-1 bg-white text-black hover:bg-gray-200 font-bold py-3.5 rounded-xl transition-all flex justify-center items-center disabled:opacity-50">
+                                    <span v-if="!isSavingProfile">Save Changes</span>
+                                    <div v-else class="w-5 h-5 spinner border-neutral-400 border-t-black"></div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </transition>
+
+    </div>
 
     <script>
-        // CONFIGURATION - STRICT MATCH TO USER MACRO
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxDtKN3XTdXYFtCgHd3QKp-zDY7KpB5AZD-LWkSPZnlX6VlhcY554TKlcqFgeaHwUHsTw/exec';
-        
-        // REFRESH SAFETY GUARD
-        window.addEventListener("beforeunload", function (e) {
-            if (activeSessions.length > 0) {
-                var confirmationMessage = "Active swimmers are currently tracking. Are you sure you want to refresh?";
-                (e || window.event).returnValue = confirmationMessage;
-                return confirmationMessage;
+        const { createApp, ref, computed, watch, onMounted } = Vue;
+
+        dayjs.extend(window.dayjs_plugin_utc);
+        dayjs.extend(window.dayjs_plugin_timezone);
+        dayjs.extend(window.dayjs_plugin_customParseFormat);
+        dayjs.tz.setDefault("Asia/Kolkata");
+        function getISTToday() { return dayjs().tz("Asia/Kolkata"); }
+
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwjf9V1IxO2NfYNvsN_F-zNvMrFCD0XUHlJ3ooa1nm8filo-r7h27rjdlidJSQUNL8lrw/exec";
+
+        const avatars = [
+            "https://ik.imagekit.io/5lz94dan6e/_%20(2).jpeg?updatedAt=1775535282674",
+            "https://ik.imagekit.io/5lz94dan6e/%E2%98%86.jpeg?updatedAt=1775535282661",
+            "https://ik.imagekit.io/5lz94dan6e/_%20(1).jpeg?updatedAt=1775535282601",
+            "https://ik.imagekit.io/5lz94dan6e/Xeno%20Goku%20pfp.jpeg?updatedAt=1775535282589",
+            "https://ik.imagekit.io/5lz94dan6e/_%E2%99%94_%20____%20_____%20_%E2%99%94_.jpeg?updatedAt=1775535282517",
+            "https://ik.imagekit.io/5lz94dan6e/%E2%9D%9D%20____%20%E1%B5%95%CC%88%20%E0%B3%AB%CB%9A%E2%88%97_.jpeg?updatedAt=1775535282501",
+            "https://ik.imagekit.io/5lz94dan6e/_%20(3).jpeg?updatedAt=1775535282486",
+            "https://ik.imagekit.io/5lz94dan6e/Goku.jpeg?updatedAt=1775535282335",
+            "https://ik.imagekit.io/5lz94dan6e/Y2k%20PFP%20profile.jpeg?updatedAt=1775528295468",
+            "https://ik.imagekit.io/5lz94dan6e/HAMSTER%20GUARDIA.jpeg?updatedAt=1772695489068",
+            "https://ik.imagekit.io/5lz94dan6e/5fb4ad25-8286-4936-9e7e-57b7177d27fe.jpeg?updatedAt=1772695489018",
+            "https://ik.imagekit.io/5lz94dan6e/eff1576a-69f8-4d81-988d-950f79f7ea0f.jpeg?updatedAt=1772695488923"
+        ];
+
+        const app = createApp({
+            setup() {
+                const activeTab = ref(1);
+                const isAppLoading = ref(true);
+                const isSyncing = ref(false); // Used for the hidden logo rotation
+                const isSubmitting = ref(false);
+                const isDeactivating = ref(false);
+                const isCheckingUser = ref(false);
+                const isGridView = ref(false);
+
+                const toasts = ref([]);
+                let toastId = 0;
+                const showToast = (msg, type = 'success') => {
+                    const id = toastId++;
+                    toasts.value.push({ id, msg, type });
+                    setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id); }, 3000);
+                };
+
+                const sheet1 = ref([]);
+                const sheet2 = ref([]);
+
+                // HELPER: Persist local reactive states to browser storage
+                const updateCache = () => {
+                    localStorage.setItem('stadium_players', JSON.stringify(sheet1.value));
+                    localStorage.setItem('stadium_ledger', JSON.stringify(sheet2.value));
+                };
+
+                // INITIALIZATION: Zero-Loading Engine
+                const loadInitialData = async () => {
+                    const cachedPlayers = localStorage.getItem('stadium_players');
+                    const cachedLedger = localStorage.getItem('stadium_ledger');
+
+                    if (cachedPlayers && cachedLedger) {
+                        sheet1.value = JSON.parse(cachedPlayers);
+                        sheet2.value = JSON.parse(cachedLedger);
+                        isAppLoading.value = false; // Bypass loading immediately
+                    } else {
+                        // Only show loading and fetch if cache is entirely empty
+                        isAppLoading.value = true;
+                        isSyncing.value = true;
+                        try {
+                            const response = await fetch(GAS_WEB_APP_URL);
+                            const result = await response.json();
+                            if (result.status === 'success') {
+                                sheet1.value = result.data.sheet1 || [];
+                                sheet2.value = result.data.sheet2 || [];
+                                updateCache();
+                            } else showToast('Sync Failed', 'error');
+                        } catch (e) { showToast('Network Error', 'error'); } 
+                        finally { 
+                            isAppLoading.value = false;
+                            isSyncing.value = false;
+                        }
+                    }
+                };
+
+                // MANUAL SYNC: Hidden Logo Refetch Mechanism
+                const forceSyncData = async () => {
+                    if (isSyncing.value) return; // Prevent double-clicks
+                    isSyncing.value = true;
+                    try {
+                        const response = await fetch(GAS_WEB_APP_URL);
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                            sheet1.value = result.data.sheet1 || [];
+                            sheet2.value = result.data.sheet2 || [];
+                            updateCache(); // Overwrite old cache with fresh DB data
+                            showToast('Database Synced Successfully');
+                        } else showToast('Sync Failed', 'error');
+                    } catch (e) { showToast('Network Error', 'error'); } 
+                    finally { isSyncing.value = false; }
+                };
+
+                const formState = ref('hidden'); 
+                const showCustomPfpInput = ref(false);
+                const showCustomEditPfp = ref(false);
+                const lightboxUrl = ref(null);
+
+                const form = ref({ mobileNumber: '', name: '', village: '', fee: 500, pfp: '', doj: '', edf: '' });
+
+                const resetFormDates = () => {
+                    form.value.doj = getISTToday().format('YYYY-MM-DD');
+                    form.value.edf = getISTToday().add(1, 'month').format('YYYY-MM-DD');
+                };
+
+                watch(() => form.value.doj, (newDoj) => {
+                    if(newDoj) form.value.edf = dayjs(newDoj).add(1, 'month').format('YYYY-MM-DD');
+                });
+
+                let lookupTimeout;
+                const onMobileInput = () => {
+                    clearTimeout(lookupTimeout);
+                    const numRaw = form.value.mobileNumber.trim();
+                    const cleanNum = numRaw.replace(/\D/g, ''); 
+                    
+                    if(cleanNum.length < 10) { 
+                        clearTimeout(lookupTimeout);
+                        formState.value = 'hidden'; 
+                        isCheckingUser.value = false; 
+                        return; 
+                    }
+                    
+                    isCheckingUser.value = true;
+                    lookupTimeout = setTimeout(() => {
+                        const existing = sheet1.value.find(p => String(p.mobileNumber).trim() === numRaw || String(p.mobileNumber).replace(/\D/g, '') === cleanNum);
+                        if(existing) {
+                            form.value.name = existing.name;
+                            form.value.village = existing.village;
+                            form.value.pfp = existing.imageLink || '';
+                            if(!avatars.includes(form.value.pfp)) showCustomPfpInput.value = true;
+                            formState.value = existing.status ? 'active' : 'deactivated'; 
+                        } else {
+                            form.value.name = ''; form.value.village = ''; form.value.pfp = ''; showCustomPfpInput.value = false;
+                            formState.value = 'new'; 
+                        }
+                        isCheckingUser.value = false;
+                    }, 500);
+                };
+
+                const submitForm = async () => {
+                    isSubmitting.value = true;
+                    const finalPfp = form.value.pfp || avatars[Math.floor(Math.random() * avatars.length)];
+                    const payload = {
+                        action: "upsertPlayer",
+                        data: {
+                            mobileNumber: form.value.mobileNumber.trim(), name: form.value.name.trim(), village: form.value.village.trim(),
+                            category: "Badminton", fee: Number(form.value.fee),
+                            dateOfJoining: dayjs.tz(form.value.doj, "YYYY-MM-DD", "Asia/Kolkata").format('DD/MM/YYYY'), 
+                            endDateOfFee: dayjs.tz(form.value.edf, "YYYY-MM-DD", "Asia/Kolkata").format('DD/MM/YYYY'),
+                            imageLink: finalPfp, dateKey: getISTToday().format('MMMM YYYY')
+                        }
+                    };
+
+                    try {
+                        const res = await fetch(GAS_WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
+                        if ((await res.json()).status === "success") {
+                            showToast('Processed Successfully');
+                            
+                            const newPlayerObj = { ...payload.data, status: true };
+                            const existingIdx = sheet1.value.findIndex(p => p.mobileNumber === newPlayerObj.mobileNumber);
+                            if (existingIdx !== -1) {
+                                sheet1.value[existingIdx] = { ...sheet1.value[existingIdx], ...newPlayerObj, status: true };
+                            } else {
+                                sheet1.value.push(newPlayerObj);
+                            }
+
+                            if (payload.data.fee > 0) {
+                                const mKey = payload.data.dateKey;
+                                const existingMonth = sheet2.value.find(m => m.dateKey === mKey);
+                                if (existingMonth) {
+                                    existingMonth.totalFeeCollection = Number(existingMonth.totalFeeCollection) + Number(payload.data.fee);
+                                } else {
+                                    sheet2.value.push({ dateKey: mKey, totalFeeCollection: Number(payload.data.fee) });
+                                }
+                            }
+                            
+                            updateCache(); // Save optimistic changes to Local Storage immediately
+                            
+                            form.value = { mobileNumber: '', name: '', village: '', fee: 500, pfp: '', doj: '', edf: '' };
+                            resetFormDates();
+                            formState.value = 'hidden'; activeTab.value = 2; showCustomPfpInput.value = false;
+                        }
+                    } catch (e) { showToast('Transmission Failed', 'error'); } 
+                    finally { isSubmitting.value = false; }
+                };
+
+                // DYNAMIC COMPUTATION: Days Remaining calculates precisely against the live date.
+                const calculateDays = (dateStr) => {
+                    if (!dateStr) return 0; 
+                    let edf = dayjs.tz(dateStr, "DD/MM/YYYY", "Asia/Kolkata").startOf('day');
+                    if (!edf.isValid()) edf = dayjs(dateStr).tz("Asia/Kolkata").startOf('day');
+                    if (!edf.isValid()) return 0; 
+                    return edf.diff(getISTToday().startOf('day'), 'day');
+                };
+
+                const activePlayersList = computed(() => {
+                    return sheet1.value.filter(p => p.status === true).map(p => {
+                        const days = calculateDays(p.endDateOfFee);
+                        let colorState = 'bg-emerald-500'; let badgeBgClass = 'bg-[#064e3b] border-[#047857]'; let badgeTextClass = 'text-[#34d399]'; let textStatusClass = 'text-emerald-500';
+                        if(days === 2) { colorState = 'bg-amber-500'; badgeBgClass = 'bg-[#78350f] border-[#b45309]'; badgeTextClass = 'text-amber-400'; textStatusClass = 'text-amber-500'; } 
+                        else if(days === 1) { colorState = 'bg-orange-500'; badgeBgClass = 'bg-[#7c2d12] border-[#c2410c]'; badgeTextClass = 'text-orange-400'; textStatusClass = 'text-orange-500'; } 
+                        else if(days <= 0) { colorState = 'bg-red-600'; badgeBgClass = 'bg-[#7f1d1d] border-[#b91c1c]'; badgeTextClass = 'text-red-400'; textStatusClass = 'text-red-500'; }
+                        return { ...p, daysRemaining: days, colorState, badgeBgClass, badgeTextClass, textStatusClass };
+                    }).sort((a, b) => a.daysRemaining - b.daysRemaining);
+                });
+
+                const selectedPlayer = ref(null);
+                const isEditingProfile = ref(false);
+                const isSavingProfile = ref(false);
+                const editForm = ref({});
+
+                const openDetail = (p) => { selectedPlayer.value = p; isEditingProfile.value = false; };
+                const closeDetailModal = () => { selectedPlayer.value = null; isEditingProfile.value = false; };
+                const openLightbox = (url) => { lightboxUrl.value = url; };
+                
+                const startEditProfile = () => {
+                    const dojParsed = selectedPlayer.value.dateOfJoining ? dayjs(selectedPlayer.value.dateOfJoining, "DD/MM/YYYY").format('YYYY-MM-DD') : getISTToday().format('YYYY-MM-DD');
+                    const edfParsed = selectedPlayer.value.endDateOfFee ? dayjs(selectedPlayer.value.endDateOfFee, "DD/MM/YYYY").format('YYYY-MM-DD') : getISTToday().format('YYYY-MM-DD');
+                    
+                    const currentPfp = selectedPlayer.value.imageLink || '';
+                    if(currentPfp && !avatars.includes(currentPfp)) showCustomEditPfp.value = true;
+                    else showCustomEditPfp.value = false;
+
+                    editForm.value = {
+                        oldMobile: selectedPlayer.value.mobileNumber,
+                        mobileNumber: selectedPlayer.value.mobileNumber, name: selectedPlayer.value.name,
+                        village: selectedPlayer.value.village, pfp: currentPfp,
+                        doj: dojParsed, edf: edfParsed
+                    };
+                    isEditingProfile.value = true;
+                };
+
+                const saveProfile = async () => {
+                    isSavingProfile.value = true;
+                    try {
+                        if(editForm.value.oldMobile !== editForm.value.mobileNumber) {
+                            await fetch(GAS_WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "deactivatePlayer", data: { mobileNumber: editForm.value.oldMobile } }) });
+                        }
+                        const finalPfp = editForm.value.pfp || avatars[Math.floor(Math.random() * avatars.length)];
+                        const payload = {
+                            action: "upsertPlayer",
+                            data: {
+                                mobileNumber: editForm.value.mobileNumber, name: editForm.value.name, village: editForm.value.village,
+                                category: "Badminton", fee: 0, 
+                                dateOfJoining: dayjs.tz(editForm.value.doj, "YYYY-MM-DD", "Asia/Kolkata").format('DD/MM/YYYY'),
+                                endDateOfFee: dayjs.tz(editForm.value.edf, "YYYY-MM-DD", "Asia/Kolkata").format('DD/MM/YYYY'),
+                                imageLink: finalPfp, dateKey: getISTToday().format('MMMM YYYY')
+                            }
+                        };
+                        const res = await fetch(GAS_WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) });
+                        if ((await res.json()).status === "success") {
+                            showToast('Profile Updated');
+                            
+                            const pIdx = sheet1.value.findIndex(p => p.mobileNumber === editForm.value.oldMobile);
+                            if (pIdx !== -1) {
+                                sheet1.value[pIdx] = {
+                                    ...sheet1.value[pIdx],
+                                    mobileNumber: payload.data.mobileNumber,
+                                    name: payload.data.name,
+                                    village: payload.data.village,
+                                    dateOfJoining: payload.data.dateOfJoining,
+                                    endDateOfFee: payload.data.endDateOfFee,
+                                    imageLink: payload.data.imageLink
+                                };
+                            }
+                            updateCache(); // Sync Local Storage instantly
+                            closeDetailModal();
+                        }
+                    } catch(e) { showToast('Update Failed', 'error'); } 
+                    finally { isSavingProfile.value = false; }
+                };
+
+                const formatWhatsApp = (num) => {
+                    let clean = String(num).replace(/\D/g, '');
+                    if (clean.length === 10) return '91' + clean;
+                    return clean;
+                };
+
+                const deactivatePlayer = async (p) => {
+                    isDeactivating.value = true;
+                    try {
+                        const res = await fetch(GAS_WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "deactivatePlayer", data: { mobileNumber: p.mobileNumber } }) });
+                        if((await res.json()).status === "success") { 
+                            showToast('Terminated'); 
+                            
+                            const pIdx = sheet1.value.findIndex(item => item.mobileNumber === p.mobileNumber);
+                            if (pIdx !== -1) {
+                                sheet1.value[pIdx].status = false;
+                            }
+                            updateCache(); // Sync Local Storage instantly
+                            closeDetailModal(); 
+                        } 
+                    } catch (e) { showToast('Error', 'error'); } 
+                    finally { isDeactivating.value = false; }
+                };
+
+                const auditDropdownOpen = ref(false);
+                const selectedAuditMonth = ref('');
+                
+                const availableMonths = computed(() => { 
+                    const m = [...new Set(sheet2.value.map(a => a.dateKey))]; 
+                    return m.length ? ['Overall', ...m] : ['No Data']; 
+                });
+                
+                const activeAuditData = computed(() => { 
+                    if (selectedAuditMonth.value === 'Overall') {
+                        const totalSum = sheet2.value.reduce((sum, item) => sum + (Number(item.totalFeeCollection) || 0), 0);
+                        return { totalFeeCollection: totalSum };
+                    }
+                    return sheet2.value.find(a => a.dateKey === selectedAuditMonth.value) || { totalFeeCollection: 0 }; 
+                });
+                
+                const formatCurrency = (val) => new Intl.NumberFormat('en-IN').format(val);
+                const selectAuditMonth = (m) => { selectedAuditMonth.value = m; auditDropdownOpen.value = false; };
+
+                onMounted(async () => {
+                    resetFormDates();
+                    await loadInitialData(); // Boots instantly from cache
+                    
+                    const cm = getISTToday().format('MMMM YYYY');
+                    if(availableMonths.value.includes(cm)) selectedAuditMonth.value = cm;
+                    else if(availableMonths.value.length && availableMonths.value[0] !== 'No Data') selectedAuditMonth.value = availableMonths.value[0];
+                });
+
+                return {
+                    avatars, activeTab, isAppLoading, isSyncing, isSubmitting, isDeactivating, isCheckingUser, toasts, isGridView,
+                    form, formState, submitForm, onMobileInput, showCustomPfpInput, showCustomEditPfp, lightboxUrl, openLightbox,
+                    activePlayersList, selectedPlayer, isEditingProfile, isSavingProfile, editForm, formatWhatsApp,
+                    openDetail, closeDetailModal, startEditProfile, saveProfile, deactivatePlayer, forceSyncData,
+                    auditDropdownOpen, selectedAuditMonth, availableMonths, activeAuditData, formatCurrency, selectAuditMonth
+                };
             }
         });
 
-        // DEFAULT AVATAR FOR MULTI-DEVICE
-        const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
-
-        let activeSessions = [];
-        let rentalInventory = []; 
-        let currentTempEntry = {};
-        let activeMidSessionId = null;
-
-        /* ==============================================================
-           1. CORE OFFLINE-FIRST DB
-        ============================================================== */
-        let db;
-        const request = indexedDB.open("PoolAppDB", 1);
-        request.onupgradeneeded = (e) => {
-            db = e.target.result;
-            if (!db.objectStoreNames.contains('offlineQueue')) {
-                db.createObjectStore('offlineQueue', { keyPath: 'id', autoIncrement: true });
-            }
-        };
-        request.onsuccess = (e) => { db = e.target.result; syncOfflineQueue(); };
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.innerText = msg; toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 3000);
-        }
-
-        async function sendPayloadSafely(payloadObj) {
-            if (navigator.onLine) {
-                try {
-                    await fetch(GAS_URL, {
-                        method: 'POST', body: JSON.stringify(payloadObj),
-                        headers: { "Content-Type": "text/plain;charset=utf-8" }
-                    });
-                    return true;
-                } catch (error) { saveToOfflineDb(payloadObj); return false; }
-            } else { saveToOfflineDb(payloadObj); return false; }
-        }
-
-        function saveToOfflineDb(payloadObj) {
-            db.transaction('offlineQueue', 'readwrite').objectStore('offlineQueue').add({ payload: payloadObj, timestamp: Date.now() });
-            showToast("Offline: Request saved locally.");
-            updateNetworkIndicator(false);
-        }
-
-        async function syncOfflineQueue() {
-            if (!navigator.onLine || !db) return;
-            updateNetworkIndicator(true);
-            const req = db.transaction('offlineQueue', 'readwrite').objectStore('offlineQueue').getAll();
-            req.onsuccess = async () => {
-                if (req.result.length > 0) {
-                    showToast(`Syncing offline actions...`);
-                    for (const item of req.result) {
-                        try {
-                            await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(item.payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
-                            db.transaction('offlineQueue', 'readwrite').objectStore('offlineQueue').delete(item.id);
-                        } catch (e) { break; }
-                    }
-                }
-            };
-        }
-        window.addEventListener('online', syncOfflineQueue);
-        window.addEventListener('offline', () => updateNetworkIndicator(false));
-
-        function updateNetworkIndicator(isOnline) {
-            const ind = document.getElementById('network-indicator');
-            if (isOnline) { ind.classList.remove('offline'); } else { ind.classList.add('offline'); }
-        }
-
-        /* ==============================================================
-           2. SPA INIT & SYNC
-        ============================================================== */
-        function initializeEngine() {
-            window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); // Unlock Audio Context
-            document.getElementById('system-unlock').style.display = 'none';
-            initWebWorker();
-            fetchInventory();
-            syncActiveSessionsFromSheet();
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-view, .nav-tab').forEach(t => t.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        async function syncActiveSessionsFromSheet() {
-            if (!navigator.onLine) return;
-            document.getElementById('syncing-banner').style.display = 'block';
-            try {
-                const res = await fetch(`${GAS_URL}?action=getActiveSessions`);
-                const json = await res.json();
-                if (json.success && json.data) {
-                    const mappedSessions = json.data.map(serverData => {
-                        return {
-                            id: 'SESS_' + serverData.mobile, 
-                            name: serverData.name, village: serverData.village,
-                            mobile: serverData.mobile, fee: serverData.fee,
-                            rentalQty: serverData.rentalQty, rentalFee: serverData.rentalFee,
-                            photo: DEFAULT_AVATAR, 
-                            stopTime: convertISTStringToTimestamp(serverData.stopTimeStr), 
-                            alerted: false
-                        }
-                    });
-                    
-                    mappedSessions.forEach(mapped => {
-                        const existsLocally = activeSessions.find(loc => loc.mobile === mapped.mobile);
-                        if(!existsLocally) activeSessions.push(mapped);
-                    });
-                    renderLiveGrid();
-                }
-            } catch (e) { console.error("Sync Failed", e); }
-            document.getElementById('syncing-banner').style.display = 'none';
-        }
-
-        // THE ULTIMATE IST PARSER - Immune to 1899 epoch and leap year shifts
-        function convertISTStringToTimestamp(timeStr) {
-            if(!timeStr) return getISTTime();
-            try {
-                if(typeof timeStr === 'number') return timeStr; // Local timestamp catch
-                let str = String(timeStr).trim();
-                let isoStr = str.replace(' ', 'T') + '+05:30'; 
-                let timestamp = new Date(isoStr).getTime();
-                if(isNaN(timestamp)) return getISTTime();
-                return timestamp;
-            } catch(e) { return getISTTime(); }
-        }
-
-        /* ==============================================================
-           3. DATA FETCHING 
-        ============================================================== */
-        async function fetchInventory() {
-            try {
-                const res = await fetch(`${GAS_URL}?action=getRentalItems`);
-                const json = await res.json();
-                if (json.success) { rentalInventory = json.data; renderRentals('entry-rentals'); }
-            } catch (e) {
-                rentalInventory = [{ name: "Costume", fee: 20 }, { name: "Goggles", fee: 10 }];
-                renderRentals('entry-rentals');
-            }
-        }
-
-        function renderRentals(containerId) {
-            const grid = document.getElementById(containerId); grid.innerHTML = '';
-            rentalInventory.forEach((item, index) => {
-                grid.innerHTML += `<label class="rental-item"><span>${item.name} (₹${item.fee})</span><input type="checkbox" value="${index}" class="${containerId === 'entry-rentals' ? 'rental-checkbox' : 'mid-rental-checkbox'}"></label>`;
-            });
-        }
-
-        /* ==============================================================
-           4. BACKGROUND WORKER & TIME (IST CALIBRATED)
-        ============================================================== */
-        let clockWorker;
-        function getISTTime() {
-            const date = new Date(); const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-            return new Date(utc + (3600000 * 5.5)).getTime();
-        }
-
-        function initWebWorker() {
-            const workerCode = `
-                function getISTTime() { const d = new Date(); return new Date(d.getTime() + (d.getTimezoneOffset() * 60000) + (3600000 * 5.5)).getTime(); }
-                self.onmessage = function(e) {
-                    if(e.data.type === 'SYNC') {
-                        let sessions = e.data.sessions; let now = getISTTime();
-                        sessions.forEach(s => { let diff = s.stopTime - now; s.remaining = diff > 0 ? diff : 0; });
-                        sessions.sort((a, b) => {
-                            if (a.remaining < 180000 && b.remaining >= 180000) return -1;
-                            if (b.remaining < 180000 && a.remaining >= 180000) return 1;
-                            return a.remaining - b.remaining;
-                        });
-                        self.postMessage({ type: 'TICK', sessions: sessions });
-                    }
-                }; setInterval(() => { self.postMessage({ type: 'REQUEST_SYNC' }); }, 1000);
-            `;
-            clockWorker = new Worker(URL.createObjectURL(new Blob([workerCode], { type: "application/javascript" })));
-            clockWorker.onmessage = function(e) {
-                if (e.data.type === 'REQUEST_SYNC') { clockWorker.postMessage({ type: 'SYNC', sessions: activeSessions }); } 
-                else if (e.data.type === 'TICK') { activeSessions = e.data.sessions; renderLiveGrid(); checkTTSAlerts(); }
-            };
-        }
-
-        function checkTTSAlerts() {
-            activeSessions.forEach(session => {
-                if (session.remaining === 0 && !session.alerted) {
-                    session.alerted = true;
-                    const msg = new SpeechSynthesisUtterance(`Attention! ${session.name} ka time poora ho chuka hai`);
-                    msg.lang = 'hi-IN'; msg.rate = 0.9; window.speechSynthesis.speak(msg);
-                }
-            });
-        }
-
-        /* ==============================================================
-           5. FORM & INVOICE FLOW
-        ============================================================== */
-        let modalStack = [];
-        function openModal(id) { modalStack.push(id); document.getElementById(id).style.display = "flex"; }
-        function closeModal(id) { modalStack.splice(modalStack.indexOf(id), 1); document.getElementById(id).style.display = "none"; stopCamera(); }
-
-        function selectFee(amount, el) {
-            document.querySelectorAll('.fee-btn').forEach(btn => btn.classList.remove('active'));
-            el.classList.add('active'); document.getElementById('entry-fee').value = amount;
-        }
-
-        let stream = null;
-        async function openCameraModal() {
-            if (!document.getElementById('entry-name').value || !document.getElementById('entry-mobile').value) { alert("Fill Name and Mobile."); return; }
-            openModal('modal-camera');
-            try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }); document.getElementById('camera-feed').srcObject = stream; } 
-            catch (err) { alert("Camera unavailable."); }
-        }
-
-        function stopCamera() { if (stream) stream.getTracks().forEach(track => track.stop()); }
-        function captureAndCompress() {
-            const video = document.getElementById('camera-feed'); const canvas = document.getElementById('hidden-canvas'); const ctx = canvas.getContext('2d');
-            canvas.width = 400; canvas.height = 400; const size = Math.min(video.videoWidth, video.videoHeight);
-            ctx.drawImage(video, (video.videoWidth - size) / 2, (video.videoHeight - size) / 2, size, size, 0, 0, 400, 400);
-            const base64 = canvas.toDataURL('image/jpeg', 0.75); stopCamera(); closeModal('modal-camera'); generateInvoice(base64);
-        }
-
-        function generateInvoice(imageBase64) {
-            const baseFee = parseInt(document.getElementById('entry-fee').value);
-            let rentalQty = 0; let rentalFee = 0;
-            document.querySelectorAll('#tab-entry .rental-checkbox:checked').forEach(cb => { rentalQty += 1; rentalFee += rentalInventory[cb.value].fee; });
-
-            currentTempEntry = {
-                id: 'SESS_' + document.getElementById('entry-mobile').value,
-                name: document.getElementById('entry-name').value, village: document.getElementById('entry-village').value,
-                mobile: document.getElementById('entry-mobile').value, fee: baseFee, rentalQty: rentalQty, rentalFee: rentalFee,
-                photo: imageBase64, stopTime: getISTTime() + 3600000, alerted: false
-            };
-
-            document.getElementById('invoice-details').innerHTML = `<div style="display:flex; justify-content:space-between;"><span>Name:</span> <strong>${currentTempEntry.name}</strong></div><div style="display:flex; justify-content:space-between;"><span>Base Fee:</span> <strong>₹${baseFee}</strong></div><div style="display:flex; justify-content:space-between;"><span>Rental Fee (${rentalQty}):</span> <strong>₹${rentalFee}</strong></div><hr><div style="display:flex; justify-content:space-between; font-size:1.3rem;"><span>GRAND TOTAL:</span> <strong>₹${baseFee + rentalFee}</strong></div>`;
-            openModal('modal-invoice');
-        }
-
-        async function submitFinalEntry() {
-            document.getElementById('submit-loader').style.display = 'block';
-            await sendPayloadSafely({ action: 'createEntry', name: currentTempEntry.name, village: currentTempEntry.village, mobile: currentTempEntry.mobile, fee: currentTempEntry.fee, rentalQuantity: currentTempEntry.rentalQty, discount: false, rentalFee: currentTempEntry.rentalFee });
-            
-            if(!activeSessions.find(s => s.mobile === currentTempEntry.mobile)){
-                activeSessions.push(currentTempEntry);
-            }
-            
-            document.getElementById('entry-name').value = ''; document.getElementById('entry-mobile').value = ''; document.getElementById('entry-village').value = '';
-            document.querySelectorAll('.rental-checkbox').forEach(cb => cb.checked = false);
-            
-            document.getElementById('submit-loader').style.display = 'none'; closeModal('modal-invoice'); switchTab('tab-live'); renderLiveGrid();
-        }
-
-        /* ==============================================================
-           6. LIVE POOL GRID & OPERATIONS
-        ============================================================== */
-        function formatTime(ms) {
-            if (ms <= 0) return "00:00:00"; let sec = Math.floor(ms / 1000);
-            return `${Math.floor(sec / 3600).toString().padStart(2, '0')}:${Math.floor((sec % 3600) / 60).toString().padStart(2, '0')}:${(sec % 60).toString().padStart(2, '0')}`;
-        }
-
-        function renderLiveGrid() {
-            const grid = document.getElementById('live-pool-grid'); grid.innerHTML = '';
-            activeSessions.forEach(session => {
-                grid.innerHTML += `
-                    <div class="live-card ${session.remaining < 180000 ? 'critical' : ''}" id="${session.id}">
-                        <div class="card-header">
-                            <img src="${session.photo}" class="card-pfp">
-                            <div class="card-info">
-                                <div class="card-name">${session.name}</div>
-                                <div class="card-timer">${formatTime(session.remaining)}</div>
-                            </div>
-                        </div>
-                        <div class="card-actions">
-                            <button class="btn-main btn-secondary" style="font-size: 0.9rem;" onclick="initMidSessionRental('${session.id}')">ADD RENTAL</button>
-                            <button class="btn-main btn-danger" style="font-size: 0.9rem;" onclick="endSession('${session.id}')">END</button>
-                        </div>
-                    </div>`;
-            });
-        }
-
-        function initMidSessionRental(id) { activeMidSessionId = id; renderRentals('mid-session-rentals'); openModal('modal-add-rental'); }
-
-        async function confirmMidSessionRental() {
-            let addedFee = 0; let addedQty = 0;
-            document.querySelectorAll('.mid-rental-checkbox:checked').forEach(cb => { addedQty += 1; addedFee += rentalInventory[cb.value].fee; });
-            if (addedQty === 0) { closeModal('modal-add-rental'); return; }
-
-            const session = activeSessions.find(s => s.id === activeMidSessionId);
-            if (session) {
-                session.rentalQty += addedQty; session.rentalFee += addedFee;
-                sendPayloadSafely({ action: 'addMidSessionRental', name: session.name, mobile: session.mobile, additionalQty: addedQty, additionalFee: addedFee });
-            }
-            closeModal('modal-add-rental');
-        }
-
-        async function endSession(id) {
-            if(!confirm("End session? Student will be erased from Live View and Google Sheet.")) return;
-            const session = activeSessions.find(s => s.id === id);
-            sendPayloadSafely({ action: 'endSession', name: session.name, mobile: session.mobile });
-            activeSessions = activeSessions.filter(s => s.id !== id); renderLiveGrid();
-        }
-
-        /* ==============================================================
-           7. AUDIT DASHBOARD 
-        ============================================================== */
-        async function fetchAuditData() {
-            const rawDate = document.getElementById('audit-date').value; // Outputs YYYY-MM-DD flawlessly
-            if(!rawDate) return;
-
-            document.getElementById('audit-loader').style.display = 'block';
-            document.getElementById('audit-revenue').innerText = '...';
-
-            try {
-                const res = await fetch(`${GAS_URL}?action=getAuditRevenue&date=${rawDate}`);
-                const data = await res.json(); 
-                document.getElementById('audit-revenue').innerText = `₹${data.revenue || 0}`;
-            } catch(e) {
-                document.getElementById('audit-revenue').innerText = 'Offline';
-            }
-            document.getElementById('audit-loader').style.display = 'none';
-        }
+        app.mount('#app');
     </script>
 </body>
 </html>
