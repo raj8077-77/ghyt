@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stadium OS - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#eff6ff', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb' },
+                        surface: '#0a0a0a',
+                        card: '#111111',
+                        borderline: '#262626'
+                    },
+                    boxShadow: { 'floating': '0 20px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.3)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root { color-scheme: dark; }
+        body { background-color: #000000; color: #ffffff; overflow-x: hidden; }
+        
+        /* Custom Sport-Specific Animations */
+        
+        /* 1. Swimming Animation (Fluid Bobbing & Wave) */
+        @keyframes swim-bob {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(3deg); }
+        }
+        .group:hover .animate-swim {
+            animation: swim-bob 2s ease-in-out infinite;
+        }
+
+        /* 2. Badminton Animation (Smash / Shuttlecock Flight) */
+        @keyframes shuttle-smash {
+            0% { transform: scale(1) translate(0, 0) rotate(0deg); }
+            30% { transform: scale(1.15) translate(-10px, -20px) rotate(-25deg); }
+            70% { transform: scale(1.15) translate(10px, -20px) rotate(25deg); }
+            100% { transform: scale(1) translate(0, 0) rotate(0deg); }
+        }
+        .group:hover .animate-shuttle {
+            animation: shuttle-smash 1.5s ease-in-out infinite;
+        }
+
+        /* 3. Gym Animation (Heavy Pumping / Flexing) */
+        @keyframes gym-pump {
+            0%, 100% { transform: scale(1) translateY(0); }
+            25% { transform: scale(1.1) translateY(-8px) rotate(-10deg); }
+            75% { transform: scale(1.1) translateY(-8px) rotate(10deg); }
+        }
+        .group:hover .animate-pump {
+            animation: gym-pump 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        /* Dynamic Glow Effects */
+        .glass-panel {
+            background: linear-gradient(145deg, rgba(26,26,26,0.9) 0%, rgba(17,17,17,0.9) 100%);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+    
+    <!-- Preserved Exact Header -->
+    <header class="w-full bg-surface h-16 relative z-40 border-b border-borderline">
+        <div class="flex items-center justify-center h-full px-4 relative max-w-7xl mx-auto">
+            <div class="absolute left-4 flex items-center gap-3">
+                <img src="https://ik.imagekit.io/silentgamers/Picsart_25-09-18_22-04-02-455.jpg?updatedAt=1758214916821&ik-s=f760e9821930d21a57e973b1b1b92ce3d7611815" 
+                     alt="Logo" loading="lazy" 
+                     class="w-10 h-10 rounded-full border border-borderline object-cover shrink-0 cursor-pointer transition-transform duration-300">
+                <h1 class="font-black text-xl tracking-widest uppercase text-white hidden sm:block">Stadium OS</h1>
+            </div>
+            <h1 class="font-black text-xl tracking-widest uppercase text-white sm:hidden">Stadium OS</h1>
+        </div>
+    </header>
+
+    <!-- Main Navigation Content -->
+    <main class="flex-grow relative flex items-center justify-center p-4 md:p-8 w-full z-10">
+        
+        <!-- Background Ambient Glow -->
+        <div class="absolute inset-0 z-0 pointer-events-none flex justify-center items-center overflow-hidden opacity-30">
+            <div class="w-[800px] h-[800px] bg-brand-500 rounded-full blur-[150px] opacity-20 transform -translate-y-20"></div>
+        </div>
+
+        <div class="w-full max-w-6xl relative z-10 flex flex-col items-center">
+            
+            <div class="text-center mb-12">
+                <h2 class="text-4xl md:text-5xl font-black text-white tracking-tighter mb-3">Select Facility Hub</h2>
+                <p class="text-neutral-500 font-medium text-lg">Choose an active module to manage operations & ledgers.</p>
+            </div>
+
+            <!-- Modules Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 w-full">
+                
+                <!-- 1. Swimming Pool Card -->
+                <a href="pool.html" class="group relative overflow-hidden rounded-[2rem] border border-[#333] glass-panel hover:border-[#3b82f6] hover:shadow-[0_0_40px_rgba(59,130,246,0.2)] transition-all duration-500 transform hover:-translate-y-2 flex flex-col items-center justify-center p-10 min-h-[320px]">
+                    <!-- Hover Ambient Glow -->
+                    <div class="absolute inset-0 bg-gradient-to-b from-[#3b82f6]/0 to-[#3b82f6]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    
+                    <!-- Icon Box -->
+                    <div class="w-24 h-24 mb-6 rounded-3xl bg-[#1a1a1a] border border-[#333] flex items-center justify-center group-hover:bg-[#0f172a] group-hover:border-[#3b82f6]/50 transition-colors duration-500 relative shadow-lg">
+                        <svg class="w-12 h-12 text-[#60a5fa] animate-swim transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2 12c2.667 0 4-2 6.667-2 2.667 0 4 2 6.667 2 2.667 0 4-2 6.667-2M2 18c2.667 0 4-2 6.667-2 2.667 0 4 2 6.667 2 2.667 0 4-2 6.667-2"></path>
+                            <circle cx="12" cy="5" r="2.5"></circle>
+                        </svg>
+                    </div>
+                    
+                    <h3 class="text-2xl font-black text-white tracking-tight group-hover:text-[#60a5fa] transition-colors">Swimming Pool</h3>
+                    <p class="text-neutral-500 font-medium text-sm mt-2 text-center">Manage daily aquatic entries, memberships, and active logs.</p>
+                </a>
+
+                <!-- 2. Badminton Card -->
+                <a href="badminton.html" class="group relative overflow-hidden rounded-[2rem] border border-[#333] glass-panel hover:border-[#f59e0b] hover:shadow-[0_0_40px_rgba(245,158,11,0.2)] transition-all duration-500 transform hover:-translate-y-2 flex flex-col items-center justify-center p-10 min-h-[320px]">
+                    <!-- Hover Ambient Glow -->
+                    <div class="absolute inset-0 bg-gradient-to-b from-[#f59e0b]/0 to-[#f59e0b]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    
+                    <!-- Icon Box -->
+                    <div class="w-24 h-24 mb-6 rounded-3xl bg-[#1a1a1a] border border-[#333] flex items-center justify-center group-hover:bg-[#291e0b] group-hover:border-[#f59e0b]/50 transition-colors duration-500 relative shadow-lg">
+                        <svg class="w-12 h-12 text-[#fbbf24] animate-shuttle transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5.25v13.5"></path>
+                            <circle cx="12" cy="18.75" r="2.25"></circle>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 8.25l-3-1.5M13.5 8.25l3-1.5M10.5 11.25l-4.5-1.5M13.5 11.25l4.5-1.5"></path>
+                        </svg>
+                    </div>
+                    
+                    <h3 class="text-2xl font-black text-white tracking-tight group-hover:text-[#fbbf24] transition-colors">Badminton</h3>
+                    <p class="text-neutral-500 font-medium text-sm mt-2 text-center">Court allocations, legacy legacy tiers, and live active rosters.</p>
+                </a>
+
+                <!-- 3. Gym Card -->
+                <a href="gym.html" class="group relative overflow-hidden rounded-[2rem] border border-[#333] glass-panel hover:border-[#ef4444] hover:shadow-[0_0_40px_rgba(239,68,68,0.2)] transition-all duration-500 transform hover:-translate-y-2 flex flex-col items-center justify-center p-10 min-h-[320px]">
+                    <!-- Hover Ambient Glow -->
+                    <div class="absolute inset-0 bg-gradient-to-b from-[#ef4444]/0 to-[#ef4444]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    
+                    <!-- Icon Box -->
+                    <div class="w-24 h-24 mb-6 rounded-3xl bg-[#1a1a1a] border border-[#333] flex items-center justify-center group-hover:bg-[#2a0f0f] group-hover:border-[#ef4444]/50 transition-colors duration-500 relative shadow-lg">
+                        <svg class="w-12 h-12 text-[#f87171] animate-pump transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12h15m-15 0a2.25 2.25 0 00-2.25 2.25v1.5a2.25 2.25 0 002.25 2.25m15-6a2.25 2.25 0 012.25 2.25v1.5a2.25 2.25 0 01-2.25 2.25M6 12v4.5m12-4.5v4.5M7.5 7.5h9M8.25 7.5V6a1.5 1.5 0 011.5-1.5h4.5A1.5 1.5 0 0115.75 6v1.5"></path>
+                        </svg>
+                    </div>
+                    
+                    <h3 class="text-2xl font-black text-white tracking-tight group-hover:text-[#f87171] transition-colors">Gymnasium</h3>
+                    <p class="text-neutral-500 font-medium text-sm mt-2 text-center">Track heavy-lifting members, automated expiry workflows, and audits.</p>
+                </a>
+
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>
