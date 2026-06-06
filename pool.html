@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Web App Mimicry: Hard-lock viewport to prevent pinch-to-zoom and zooming on input focus -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Immersive Pool Engine</title>
     <style>
         :root {
@@ -17,6 +18,7 @@
         
         * { box-sizing: border-box; }
         
+        /* --- MILITARY-GRADE WEB RESTRICTION CSS --- */
         body {
             margin: 0; padding: 0;
             background-color: var(--bg-dark);
@@ -25,7 +27,23 @@
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
             position: relative;
+            
+            overscroll-behavior-y: none; /* Block Mobile Swipe-to-Refresh */
+            -webkit-touch-callout: none; /* Block iOS context menu/popups */
+            -webkit-user-select: none;   /* Block Selection Safari */
+            -moz-user-select: none;      /* Block Selection Firefox */
+            -ms-user-select: none;       /* Block Selection IE/Edge */
+            user-select: none;           /* Block Selection Standard */
         }
+
+        /* Safety Clause: Re-enable text selection for actual form inputs ONLY */
+        input, textarea, select {
+            -webkit-user-select: auto;
+            -moz-user-select: auto;
+            -ms-user-select: auto;
+            user-select: auto;
+        }
+        /* ------------------------------------------ */
 
         /* BACKGROUND OVERLAY MATRIX */
         body::before {
@@ -282,6 +300,54 @@
     </main>
 
     <div id="network-status" class="network-status">OFFLINE - QUEUING DATA...</div>
+
+    <!-- --- MILITARY-GRADE WEB RESTRICTION SCRIPT --- -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Block Context Menu & Drag and Drop globally
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.addEventListener('dragstart', e => e.preventDefault());
+
+            // Block Copy, Cut, Paste (Safely exempted for inputs and selects)
+            const preventClipboard = (e) => {
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT') {
+                    e.preventDefault();
+                }
+            };
+            ['copy', 'cut', 'paste'].forEach(evt => document.addEventListener(evt, preventClipboard));
+
+            // Keyboard Lockdowns (Zooming + DevTools + Text Selection)
+            document.addEventListener('keydown', e => {
+                const key = e.key.toLowerCase();
+                
+                // Block Ctrl+A / Cmd+A (Select All) globally, except inside input tags
+                if ((e.ctrlKey || e.metaKey) && key === 'a') {
+                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT') {
+                        e.preventDefault();
+                    }
+                }
+                
+                // Block Keyboard Zooming (Ctrl/Cmd + '+', '-', '=')
+                if ((e.ctrlKey || e.metaKey) && (key === '=' || key === '-' || key === '+')) {
+                    e.preventDefault();
+                }
+
+                // Block Inspect Element / DevTools
+                if (key === 'f12') e.preventDefault(); // Block F12
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'j', 'c'].includes(key)) {
+                    e.preventDefault(); // Block Ctrl+Shift+I / J / C
+                }
+                if ((e.ctrlKey || e.metaKey) && key === 'u') {
+                    e.preventDefault(); // Block View Source (Ctrl+U / Cmd+Alt+U)
+                }
+            }, { passive: false });
+
+            // Block trackpad / mouse-wheel zooming
+            document.addEventListener('wheel', e => {
+                if (e.ctrlKey || e.metaKey) e.preventDefault();
+            }, { passive: false });
+        });
+    </script>
 
     <script>
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDtKN3XTdXYFtCgHd3QKp-zDY7KpB5AZD-LWkSPZnlX6VlhcY554TKlcqFgeaHwUHsTw/exec";
