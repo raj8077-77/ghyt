@@ -3,10 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA & iOS Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
     <title>Raj Stadium</title>
+    
     <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://ik.imagekit.io/silentgamers/tr:w-192,h-192/retouch_2026062122443488.png">
+
+    <!-- Dynamic iOS Splash Screen Generator -->
+    <script>
+        (function setupIosSplashScreen() {
+            if (!/iPad|iPhone|iPod/.test(navigator.userAgent) || window.MSStream) return;
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return;
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const pr = window.devicePixelRatio || 1;
+            canvas.width = window.screen.width * pr;
+            canvas.height = window.screen.height * pr;
+            
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => {
+                const size = 200 * pr; 
+                ctx.drawImage(img, (canvas.width - size)/2, (canvas.height - size)/2, size, size);
+                const link = document.createElement('link');
+                link.rel = 'apple-touch-startup-image';
+                link.href = canvas.toDataURL('image/png');
+                document.head.appendChild(link);
+            };
+            img.src = "https://ik.imagekit.io/silentgamers/tr:w-512,h-512/retouch_2026062122443488.png";
+        })();
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -77,12 +112,33 @@
         
         .transition-theme { transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease; }
         
-        .app-logo { content: url('https://ik.imagekit.io/silentgamers/retouch_2026062122443488.png?updatedAt=null&ik-s=829f12473c5ac4d3ddfd7669d253c4e38bff2e18'); }
+        .app-logo { content: url('https://ik.imagekit.io/silentgamers/tr:w-192,h-192/retouch_2026062122443488.png'); }
     </style>
 </head>
 <body class="antialiased overflow-x-hidden min-h-screen flex flex-col selection:bg-theme selection:text-white">
     <div id="app" v-cloak class="flex-grow flex flex-col relative transition-theme" :class="{ 'mode-gym': activeMode === 'Gym' }">
         
+        <!-- PWA Install Banner -->
+        <transition name="slide-down">
+            <div v-if="showInstallBanner" class="fixed top-4 left-4 right-4 z-[110] bg-card/95 backdrop-blur-xl border border-theme p-4 rounded-2xl shadow-floating flex items-center justify-between gap-4 transition-all">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <img src="https://ik.imagekit.io/silentgamers/tr:w-192,h-192/retouch_2026062122443488.png" class="w-10 h-10 rounded-xl border border-[#333] shrink-0">
+                    <div v-if="installPlatform === 'ios'" class="text-[11px] font-medium text-neutral-300 leading-tight">
+                        Install App: Tap <svg class="inline w-4 h-4 text-theme mx-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> Share, then <br><span class="font-bold text-white">"Add to Home Screen"</span>
+                    </div>
+                    <div v-else class="text-sm font-medium text-white truncate">
+                        Install <span class="font-bold text-theme">Raj Stadium OS</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                    <button v-if="installPlatform !== 'ios'" @click="installPWA" class="bg-theme text-white hover:bg-themeDark text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow-lg">Install</button>
+                    <button @click="dismissInstall" class="text-neutral-500 hover:text-white p-1 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </transition>
+
         <!-- Loading Overlay -->
         <transition name="fade">
             <div v-if="isAppLoading" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
@@ -462,7 +518,6 @@
                         </div>
                         <div class="flex justify-between items-center py-3 border-b border-[#222]">
                             <span class="text-neutral-500 text-xs font-bold uppercase tracking-wider">Last Payment</span>
-                            <!-- Payment Mode Tracker Badge -->
                             <div class="flex items-center gap-1.5">
                                 <span v-if="selectedPlayer.paymentMethod === 'UPI'" class="px-2.5 py-1 rounded-lg bg-blue-900/30 text-blue-400 text-xs font-bold border border-blue-800">Online UPI</span>
                                 <span v-else-if="selectedPlayer.paymentMethod === 'Cash'" class="px-2.5 py-1 rounded-lg bg-emerald-900/30 text-emerald-400 text-xs font-bold border border-emerald-800">Cash Handed</span>
@@ -496,9 +551,10 @@
 
     </div>
 
-    <!-- PWA & Restrictions Script -->
+    <!-- PWA Service Worker & Security Script -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Restrictions
             document.addEventListener('contextmenu', e => e.preventDefault());
             document.addEventListener('dragstart', e => e.preventDefault());
             const preventClipboard = (e) => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault(); };
@@ -513,13 +569,10 @@
             }, { passive: false });
             document.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false });
 
-            const manifest = {
-                name: "Raj Stadium OS", short_name: "Raj Stadium", start_url: ".", display: "standalone",
-                background_color: "#000000", theme_color: "#000000",
-                icons: [{ src: "https://ik.imagekit.io/silentgamers/retouch_2026062122443488.png", sizes: "192x192", type: "image/png" }]
-            };
-            const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
-            document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="${URL.createObjectURL(manifestBlob)}">`);
+            // PWA Service Worker Registration
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW Error:', err));
+            }
         });
     </script>
 
@@ -565,6 +618,46 @@
 
                 const searchQuery = ref('');
                 const filterMode = ref('all');
+
+                // PWA Install State
+                const showInstallBanner = ref(false);
+                const installPlatform = ref('');
+                let deferredPrompt = null;
+
+                const checkInstallBanner = () => {
+                    if (localStorage.getItem('raj_dismissed_install') === 'true') return;
+                    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return;
+
+                    const ua = window.navigator.userAgent;
+                    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+                    
+                    if (isIOS) {
+                        installPlatform.value = 'ios';
+                        setTimeout(() => showInstallBanner.value = true, 2000);
+                    }
+                };
+
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    if (localStorage.getItem('raj_dismissed_install') !== 'true') {
+                        installPlatform.value = 'android';
+                        setTimeout(() => showInstallBanner.value = true, 2000);
+                    }
+                });
+
+                const installPWA = async () => {
+                    if (!deferredPrompt) return;
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') { showInstallBanner.value = false; }
+                    deferredPrompt = null;
+                };
+
+                const dismissInstall = () => {
+                    showInstallBanner.value = false;
+                    localStorage.setItem('raj_dismissed_install', 'true');
+                };
 
                 const toasts = ref([]);
                 let toastId = 0;
@@ -634,7 +727,6 @@
                 const showCustomPfpInput = ref(false);
                 const lightboxUrl = ref(null);
                 
-                // Added paymentMethod to local form state tracking
                 const form = ref({ mobileNumber: '', name: '', village: '', fee: 500, pfp: '', doj: '', edf: '', paymentMethod: '' });
 
                 const resetFormDates = () => {
@@ -682,7 +774,7 @@
 
                 const processPayment = (type) => {
                     if (type === 'cash') {
-                        form.value.paymentMethod = 'Cash'; // Track Cash
+                        form.value.paymentMethod = 'Cash'; 
                         showPaymentModal.value = false;
                         executePayload();
                     } else if (type === 'online') {
@@ -696,7 +788,7 @@
                 const cancelPayment = () => { showPaymentModal.value = false; };
                 
                 const finalizeSubmission = () => {
-                    form.value.paymentMethod = 'UPI'; // Track Online (UPI)
+                    form.value.paymentMethod = 'UPI'; 
                     showPaymentModal.value = false;
                     executePayload();
                 };
@@ -707,7 +799,7 @@
                     const payloadObj = {
                         mobileNumber: form.value.mobileNumber.trim(), name: form.value.name.trim(), village: form.value.village.trim(),
                         category: config.value.category, fee: Number(form.value.fee),
-                        paymentMethod: form.value.paymentMethod, // NEW: Payment Method sent to backend
+                        paymentMethod: form.value.paymentMethod, 
                         dateOfJoining: dayjs.tz(form.value.doj, "YYYY-MM-DD", "Asia/Kolkata").format('DD/MM/YYYY'), 
                         endDateOfFee: dayjs.tz(form.value.edf, "YYYY-MM-DD", "Asia/Kolkata").format('DD/MM/YYYY'),
                         imageLink: finalPfp, dateKey: getISTToday().format('MMMM YYYY'), status: true, isOffline: !isOnline.value
@@ -871,6 +963,7 @@
                 const selectAuditMonth = (m) => { selectedAuditMonth.value = m; auditDropdownOpen.value = false; };
 
                 onMounted(async () => {
+                    checkInstallBanner();
                     resetFormDates();
                     await loadInitialData(); 
                     const cm = getISTToday().format('MMMM YYYY');
@@ -884,7 +977,8 @@
                     filteredPlayersList, activePlayersList, selectedPlayer, formatWhatsApp, openDetail, closeDetailModal, deactivatePlayer, forceSyncData,
                     auditDropdownOpen, selectedAuditMonth, availableMonths, activeAuditData, formatCurrency, selectAuditMonth,
                     searchQuery, filterMode, isOnline, offlineQueue, startSwipe, moveSwipe, endSwipe, exportCSV,
-                    showPaymentModal, paymentMode, generatedQrUrl, processPayment, cancelPayment, finalizeSubmission
+                    showPaymentModal, paymentMode, generatedQrUrl, processPayment, cancelPayment, finalizeSubmission,
+                    showInstallBanner, installPlatform, installPWA, dismissInstall
                 };
             }
         });
