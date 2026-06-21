@@ -2,8 +2,46 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stadium OS - Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA & iOS Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>Raj Stadium</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://ik.imagekit.io/silentgamers/retouch_2026062122443488.png?updatedAt=null&ik-s=829f12473c5ac4d3ddfd7669d253c4e38bff2e18">
+
+    <!-- Dynamic iOS Splash Screen Generator -->
+    <script>
+        (function setupIosSplashScreen() {
+            if (!/iPad|iPhone|iPod/.test(navigator.userAgent) || window.MSStream) return;
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return;
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const pr = window.devicePixelRatio || 1;
+            canvas.width = window.screen.width * pr;
+            canvas.height = window.screen.height * pr;
+            
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => {
+                const size = 200 * pr; 
+                ctx.drawImage(img, (canvas.width - size)/2, (canvas.height - size)/2, size, size);
+                const link = document.createElement('link');
+                link.rel = 'apple-touch-startup-image';
+                link.href = canvas.toDataURL('image/png');
+                document.head.appendChild(link);
+            };
+            img.src = "https://ik.imagekit.io/silentgamers/retouch_2026062122443488.png?updatedAt=null&ik-s=829f12473c5ac4d3ddfd7669d253c4e38bff2e18";
+        })();
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -13,7 +51,9 @@
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        brand: { 50: '#eff6ff', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb' },
+                        theme: 'var(--theme-color)',
+                        themeLight: 'var(--theme-light)',
+                        themeDark: 'var(--theme-dark)',
                         surface: '#0a0a0a',
                         card: '#111111',
                         borderline: '#262626'
@@ -23,137 +63,953 @@
             }
         }
     </script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.9/dayjs.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.9/plugin/utc.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.9/plugin/timezone.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.9/plugin/customParseFormat.js"></script>
     <style>
-        :root { color-scheme: dark; }
-        body { background-color: #000000; color: #ffffff; overflow-x: hidden; }
+        :root { 
+            color-scheme: dark; 
+            --theme-color: #3b82f6; 
+            --theme-light: rgba(59, 130, 246, 0.15);
+            --theme-dark: #1e3a8a;
+        }
+        .mode-gym {
+            --theme-color: #10b981; 
+            --theme-light: rgba(16, 185, 129, 0.15);
+            --theme-dark: #064e3b;
+        }
         
-        /* Custom Sport-Specific Animations */
+        [v-cloak] { display: none !important; }
         
-        /* 1. Swimming Animation (Fluid Bobbing & Wave) */
-        @keyframes swim-bob {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-12px) rotate(3deg); }
+        body { 
+            background-color: #000000; color: #ffffff; 
+            overscroll-behavior-y: none; -webkit-touch-callout: none; 
+            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;           
         }
-        .group:hover .animate-swim {
-            animation: swim-bob 2s ease-in-out infinite;
-        }
+        input, textarea { -webkit-user-select: auto; -moz-user-select: auto; -ms-user-select: auto; user-select: auto; }
 
-        /* 2. Badminton Animation (Smash / Shuttlecock Flight) */
-        @keyframes shuttle-smash {
-            0% { transform: scale(1) translate(0, 0) rotate(0deg); }
-            30% { transform: scale(1.15) translate(-10px, -20px) rotate(-25deg); }
-            70% { transform: scale(1.15) translate(10px, -20px) rotate(25deg); }
-            100% { transform: scale(1) translate(0, 0) rotate(0deg); }
-        }
-        .group:hover .animate-shuttle {
-            animation: shuttle-smash 1.5s ease-in-out infinite;
-        }
-
-        /* 3. Gym Animation (Heavy Pumping / Flexing) */
-        @keyframes gym-pump {
-            0%, 100% { transform: scale(1) translateY(0); }
-            25% { transform: scale(1.1) translateY(-8px) rotate(-10deg); }
-            75% { transform: scale(1.1) translateY(-8px) rotate(10deg); }
-        }
-        .group:hover .animate-pump {
-            animation: gym-pump 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        }
-
-        /* Dynamic Glow Effects */
-        .glass-panel {
-            background: linear-gradient(145deg, rgba(26,26,26,0.9) 0%, rgba(17,17,17,0.9) 100%);
-            backdrop-filter: blur(10px);
-        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(10px); }
+        .slide-down-enter-active, .slide-down-leave-active { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); max-height: 1000px; overflow: hidden; opacity: 1; }
+        .slide-down-enter-from, .slide-down-leave-to { max-height: 0; opacity: 0; }
+        .list-enter-active, .list-leave-active { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .list-enter-from { opacity: 0; transform: translateY(20px) scale(0.95); }
+        .list-leave-to { opacity: 0; transform: scale(0.95); }
+        .list-move { transition: transform 0.4s ease; }
+        
+        .spinner { border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; border-top-color: var(--theme-color); animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        
+        .transition-theme { transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease; }
+        
+        /* RESTORED EXACT ORIGINAL LOGO URL */
+        .app-logo { content: url('https://ik.imagekit.io/silentgamers/retouch_2026062122443488.png?updatedAt=null&ik-s=829f12473c5ac4d3ddfd7669d253c4e38bff2e18'); }
     </style>
 </head>
-<body class="antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+<body class="antialiased overflow-x-hidden min-h-screen flex flex-col selection:bg-theme selection:text-white">
     
-    <!-- Preserved Exact Header -->
-    <header class="w-full bg-surface h-16 relative z-40 border-b border-borderline">
-        <div class="flex items-center justify-center h-full px-4 relative max-w-7xl mx-auto">
-            <div class="absolute left-4 flex items-center gap-3">
-                <img src="https://ik.imagekit.io/silentgamers/Picsart_25-09-18_22-04-02-455.jpg?updatedAt=1758214916821&ik-s=f760e9821930d21a57e973b1b1b92ce3d7611815" 
-                     alt="Logo" loading="lazy" 
-                     class="w-10 h-10 rounded-full border border-borderline object-cover shrink-0 cursor-pointer transition-transform duration-300">
-                <h1 class="font-black text-xl tracking-widest uppercase text-white hidden sm:block">Stadium OS</h1>
-            </div>
-            <h1 class="font-black text-xl tracking-widest uppercase text-white sm:hidden">Stadium OS</h1>
-        </div>
-    </header>
+    <!-- GLOBAL PWA CATCHER (Fixes install button not appearing) -->
+    <script>
+        window.globalDeferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window.globalDeferredPrompt = e;
+            window.dispatchEvent(new Event('pwa-prompt-ready'));
+        });
+    </script>
 
-    <!-- Main Navigation Content -->
-    <main class="flex-grow relative flex items-center justify-center p-4 md:p-8 w-full z-10">
+    <div id="app" v-cloak class="flex-grow flex flex-col relative transition-theme" :class="{ 'mode-gym': activeMode === 'Gym' }">
         
-        <!-- Background Ambient Glow -->
-        <div class="absolute inset-0 z-0 pointer-events-none flex justify-center items-center overflow-hidden opacity-30">
-            <div class="w-[800px] h-[800px] bg-brand-500 rounded-full blur-[150px] opacity-20 transform -translate-y-20"></div>
+        <!-- PWA Install Banner -->
+        <transition name="slide-down">
+            <div v-if="showInstallBanner" class="fixed top-4 left-4 right-4 z-[110] bg-card/95 backdrop-blur-xl border border-theme p-4 rounded-2xl shadow-floating flex items-center justify-between gap-4 transition-all">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <img src="https://ik.imagekit.io/silentgamers/retouch_2026062122443488.png?updatedAt=null&ik-s=829f12473c5ac4d3ddfd7669d253c4e38bff2e18" class="w-10 h-10 rounded-xl border border-[#333] shrink-0">
+                    <div v-if="installPlatform === 'ios'" class="text-[11px] font-medium text-neutral-300 leading-tight">
+                        Install App: Tap <svg class="inline w-4 h-4 text-theme mx-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> Share, then <br><span class="font-bold text-white">"Add to Home Screen"</span>
+                    </div>
+                    <div v-else class="text-sm font-medium text-white truncate">
+                        Install <span class="font-bold text-theme">Raj Stadium OS</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                    <button v-if="installPlatform !== 'ios'" @click="installPWA" class="bg-theme text-white hover:bg-themeDark text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow-lg">Install</button>
+                    <button @click="dismissInstall" class="text-neutral-500 hover:text-white p-1 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </transition>
+
+        <!-- Loading Overlay -->
+        <transition name="fade">
+            <div v-if="isAppLoading" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
+                <div class="w-12 h-12 spinner"></div>
+            </div>
+        </transition>
+
+        <!-- Toasts -->
+        <div class="fixed bottom-6 right-6 z-[90] flex flex-col gap-3 pointer-events-none">
+            <transition-group name="list">
+                <div v-for="toast in toasts" :key="toast.id" class="px-5 py-3.5 rounded-xl text-sm font-semibold flex items-center backdrop-blur-lg border shadow-lg" :class="toast.type === 'success' ? 'bg-[#064e3b]/80 text-[#34d399] border-[#047857]' : 'bg-[#7f1d1d]/80 text-[#fca5a5] border-[#b91c1c]'">
+                    {{ toast.msg }}
+                </div>
+            </transition-group>
         </div>
 
-        <div class="w-full max-w-6xl relative z-10 flex flex-col items-center">
-            
-            <div class="text-center mb-12">
-                <h2 class="text-4xl md:text-5xl font-black text-white tracking-tighter mb-3">Select Facility Hub</h2>
-                <p class="text-neutral-500 font-medium text-lg">Choose an active module to manage operations & ledgers.</p>
-            </div>
+        <!-- Offline Badge -->
+        <div v-if="!isOnline" class="bg-red-600 text-white text-xs font-bold text-center py-1 absolute top-0 w-full z-[100]">
+            No Internet Connection - Offline Mode Active
+        </div>
 
-            <!-- Modules Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 w-full">
+        <!-- Header -->
+        <header class="w-full bg-surface h-16 relative z-40 border-b border-borderline mt-1">
+            <div class="flex items-center justify-between h-full px-4 relative max-w-7xl mx-auto">
+                <div class="flex items-center gap-3">
+                    <img alt="Logo" loading="lazy" 
+                         @click="forceSyncData(false)"
+                         :class="{ 'animate-spin': isSyncing }"
+                         class="app-logo w-10 h-10 rounded-full border border-theme object-cover shrink-0 cursor-pointer transition-transform duration-300 shadow-[0_0_10px_var(--theme-light)]">
+                    
+                    <div @click="toggleMode" class="flex items-center gap-2 cursor-pointer bg-[#111] border border-[#333] px-3 py-1.5 rounded-lg hover:border-theme transition-theme group">
+                        <h1 class="font-black text-sm sm:text-lg tracking-widest uppercase text-white select-none transition-theme group-hover:text-theme">
+                            {{ activeMode }} OS
+                        </h1>
+                        <svg class="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                    </div>
+                </div>
                 
-                <!-- 1. Swimming Pool Card -->
-                <a href="pool.html" class="group relative overflow-hidden rounded-[2rem] border border-[#333] glass-panel hover:border-[#3b82f6] hover:shadow-[0_0_40px_rgba(59,130,246,0.2)] transition-all duration-500 transform hover:-translate-y-2 flex flex-col items-center justify-center p-10 min-h-[320px]">
-                    <!-- Hover Ambient Glow -->
-                    <div class="absolute inset-0 bg-gradient-to-b from-[#3b82f6]/0 to-[#3b82f6]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    
-                    <!-- Icon Box -->
-                    <div class="w-24 h-24 mb-6 rounded-3xl bg-[#1a1a1a] border border-[#333] flex items-center justify-center group-hover:bg-[#0f172a] group-hover:border-[#3b82f6]/50 transition-colors duration-500 relative shadow-lg">
-                        <svg class="w-12 h-12 text-[#60a5fa] animate-swim transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2 12c2.667 0 4-2 6.667-2 2.667 0 4 2 6.667 2 2.667 0 4-2 6.667-2M2 18c2.667 0 4-2 6.667-2 2.667 0 4 2 6.667 2 2.667 0 4-2 6.667-2"></path>
-                            <circle cx="12" cy="5" r="2.5"></circle>
-                        </svg>
-                    </div>
-                    
-                    <h3 class="text-2xl font-black text-white tracking-tight group-hover:text-[#60a5fa] transition-colors">Swimming Pool</h3>
-                    <p class="text-neutral-500 font-medium text-sm mt-2 text-center">Manage daily aquatic entries, memberships, and active logs.</p>
-                </a>
-
-                <!-- 2. Badminton Card -->
-                <a href="badminton.html" class="group relative overflow-hidden rounded-[2rem] border border-[#333] glass-panel hover:border-[#f59e0b] hover:shadow-[0_0_40px_rgba(245,158,11,0.2)] transition-all duration-500 transform hover:-translate-y-2 flex flex-col items-center justify-center p-10 min-h-[320px]">
-                    <!-- Hover Ambient Glow -->
-                    <div class="absolute inset-0 bg-gradient-to-b from-[#f59e0b]/0 to-[#f59e0b]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    
-                    <!-- Icon Box -->
-                    <div class="w-24 h-24 mb-6 rounded-3xl bg-[#1a1a1a] border border-[#333] flex items-center justify-center group-hover:bg-[#291e0b] group-hover:border-[#f59e0b]/50 transition-colors duration-500 relative shadow-lg">
-                        <svg class="w-12 h-12 text-[#fbbf24] animate-shuttle transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5.25v13.5"></path>
-                            <circle cx="12" cy="18.75" r="2.25"></circle>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 8.25l-3-1.5M13.5 8.25l3-1.5M10.5 11.25l-4.5-1.5M13.5 11.25l4.5-1.5"></path>
-                        </svg>
-                    </div>
-                    
-                    <h3 class="text-2xl font-black text-white tracking-tight group-hover:text-[#fbbf24] transition-colors">Badminton</h3>
-                    <p class="text-neutral-500 font-medium text-sm mt-2 text-center">Court allocations, legacy legacy tiers, and live active rosters.</p>
-                </a>
-
-                <!-- 3. Gym Card -->
-                <a href="gym.html" class="group relative overflow-hidden rounded-[2rem] border border-[#333] glass-panel hover:border-[#ef4444] hover:shadow-[0_0_40px_rgba(239,68,68,0.2)] transition-all duration-500 transform hover:-translate-y-2 flex flex-col items-center justify-center p-10 min-h-[320px]">
-                    <!-- Hover Ambient Glow -->
-                    <div class="absolute inset-0 bg-gradient-to-b from-[#ef4444]/0 to-[#ef4444]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    
-                    <!-- Icon Box -->
-                    <div class="w-24 h-24 mb-6 rounded-3xl bg-[#1a1a1a] border border-[#333] flex items-center justify-center group-hover:bg-[#2a0f0f] group-hover:border-[#ef4444]/50 transition-colors duration-500 relative shadow-lg">
-                        <svg class="w-12 h-12 text-[#f87171] animate-pump transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12h15m-15 0a2.25 2.25 0 00-2.25 2.25v1.5a2.25 2.25 0 002.25 2.25m15-6a2.25 2.25 0 012.25 2.25v1.5a2.25 2.25 0 01-2.25 2.25M6 12v4.5m12-4.5v4.5M7.5 7.5h9M8.25 7.5V6a1.5 1.5 0 011.5-1.5h4.5A1.5 1.5 0 0115.75 6v1.5"></path>
-                        </svg>
-                    </div>
-                    
-                    <h3 class="text-2xl font-black text-white tracking-tight group-hover:text-[#f87171] transition-colors">Gymnasium</h3>
-                    <p class="text-neutral-500 font-medium text-sm mt-2 text-center">Track heavy-lifting members, automated expiry workflows, and audits.</p>
-                </a>
-
+                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest hidden sm:block">
+                    Raj <span class="text-theme transition-theme">Stadium</span>
+                </div>
             </div>
-        </div>
-    </main>
+        </header>
 
+        <!-- Navigation -->
+        <nav class="sticky top-0 z-30 flex justify-center bg-black/80 backdrop-blur-xl border-b border-borderline py-3 px-4">
+            <div class="flex bg-card p-1 rounded-xl shadow-inner max-w-lg w-full relative border border-borderline">
+                <button @click="activeTab = 1" class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 relative z-10" :class="activeTab === 1 ? 'text-white' : 'text-neutral-500 hover:text-neutral-300'">Entry</button>
+                <button @click="activeTab = 2" class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 relative z-10" :class="activeTab === 2 ? 'text-white' : 'text-neutral-500 hover:text-neutral-300'">Live Roster</button>
+                <button @click="activeTab = 3" class="flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 relative z-10" :class="activeTab === 3 ? 'text-white' : 'text-neutral-500 hover:text-neutral-300'">Audit</button>
+                <div class="absolute top-1 bottom-1 w-[33.33%] bg-[#222] rounded-lg shadow-md transition-transform duration-300 ease-out z-0 border border-[#333]" :style="`transform: translateX(${(activeTab - 1) * 100}%);`"></div>
+            </div>
+        </nav>
+
+        <main class="flex-grow p-4 md:p-8 max-w-7xl mx-auto w-full relative overflow-x-hidden">
+            
+            <!-- TAB 1: FORM -->
+            <transition name="fade" mode="out-in">
+                <section v-show="activeTab === 1" class="max-w-xl mx-auto">
+                    <div class="bg-card rounded-2xl border border-borderline p-6 sm:p-8 relative overflow-hidden transition-theme">
+                        <form @submit.prevent="initiateSubmission" class="relative z-10">
+                            
+                            <div class="relative mb-6">
+                                <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Mobile ID</label>
+                                <div class="relative flex items-center">
+                                    <input type="tel" v-model="form.mobileNumber" @input="onMobileInput" placeholder="9876543210" required
+                                           class="w-full px-4 py-4 rounded-xl border border-[#333] bg-[#1a1a1a] focus:bg-surface focus:border-theme transition-theme font-mono text-white outline-none placeholder:text-neutral-700 text-lg tracking-wide">
+                                    <div v-if="isCheckingUser" class="absolute right-4">
+                                        <div class="w-5 h-5 spinner"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <transition name="fade">
+                                <div v-if="formState !== 'hidden'" class="mb-6 flex">
+                                    <div v-if="formState === 'new'" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-900/30 border border-blue-800 text-blue-400 text-xs font-bold uppercase tracking-wider">
+                                        <span class="w-2 h-2 rounded-full bg-blue-500 mr-2 animate-pulse"></span> New Entry
+                                    </div>
+                                    <div v-else-if="formState === 'active'" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-emerald-900/30 border border-emerald-800 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span> Active User
+                                    </div>
+                                    <div v-else-if="formState === 'deactivated'" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-red-900/30 border border-red-800 text-red-400 text-xs font-bold uppercase tracking-wider">
+                                        <span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span> Reactivate User
+                                    </div>
+                                </div>
+                            </transition>
+
+                            <transition name="slide-down">
+                                <div v-show="formState !== 'hidden'" class="space-y-6">
+                                    
+                                    <div>
+                                        <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Avatar Profile</label>
+                                        <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide items-center">
+                                            <div v-for="avatar in avatars" :key="avatar" @click="form.pfp = avatar; showCustomPfpInput = false"
+                                                 class="w-14 h-14 shrink-0 rounded-full border-[3px] cursor-pointer transition-all duration-200"
+                                                 :class="form.pfp === avatar && !showCustomPfpInput ? 'border-theme scale-110' : 'border-transparent opacity-60 hover:opacity-100'">
+                                                <img :src="avatar" loading="lazy" class="w-full h-full rounded-full object-cover">
+                                            </div>
+                                            <div @click="showCustomPfpInput = true; form.pfp = ''" 
+                                                 class="w-14 h-14 shrink-0 rounded-full border-[3px] border-dashed flex items-center justify-center cursor-pointer transition-all duration-200"
+                                                 :class="showCustomPfpInput ? 'border-theme text-theme scale-110' : 'border-[#444] text-neutral-500 hover:text-white'">
+                                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                            </div>
+                                        </div>
+                                        <transition name="slide-down">
+                                            <div v-if="showCustomPfpInput" class="mt-3">
+                                                <input type="url" v-model="form.pfp" placeholder="Paste custom image link here..." class="w-full px-4 py-3 rounded-xl border border-[#333] bg-[#1a1a1a] focus:border-theme transition-theme outline-none text-white text-sm">
+                                            </div>
+                                        </transition>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div>
+                                            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Full Name</label>
+                                            <input type="text" v-model="form.name" placeholder="Name" required class="w-full px-4 py-3 rounded-xl border border-[#333] bg-[#1a1a1a] focus:border-theme transition-theme outline-none text-white">
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Village</label>
+                                            <input type="text" v-model="form.village" placeholder="Location" required class="w-full px-4 py-3 rounded-xl border border-[#333] bg-[#1a1a1a] focus:border-theme transition-theme outline-none text-white">
+                                        </div>
+
+                                        <div class="md:col-span-2">
+                                            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Fee (₹)</label>
+                                            <div class="flex flex-wrap gap-2">
+                                                <button type="button" v-for="amt in [200, 250, 300, 500, 0]" :key="amt" 
+                                                        @click="form.fee = amt"
+                                                        class="px-5 py-2.5 rounded-xl border text-sm font-bold transition-theme focus:outline-none"
+                                                        :class="form.fee === amt ? 'bg-theme border-theme text-white shadow-[0_0_15px_var(--theme-light)]' : 'bg-[#1a1a1a] border-[#333] text-neutral-400 hover:text-white'">
+                                                    {{ amt === 0 ? 'Free' : '₹ ' + amt }}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Join Date</label>
+                                            <input type="date" v-model="form.doj" required class="w-full px-4 py-3 rounded-xl border border-[#333] bg-[#1a1a1a] focus:border-theme transition-theme outline-none text-white cursor-pointer">
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Expire Date</label>
+                                            <input type="date" v-model="form.edf" required class="w-full px-4 py-3 rounded-xl border border-[#333] bg-[#1a1a1a] focus:border-theme transition-theme outline-none text-theme cursor-pointer">
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" :disabled="isSubmitting" class="w-full mt-4 bg-white text-black hover:bg-neutral-200 font-bold py-4 px-4 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center disabled:opacity-50">
+                                        <span v-if="!isSubmitting">Add to Ledger</span>
+                                        <div v-else class="w-5 h-5 spinner border-neutral-400 border-t-black"></div>
+                                    </button>
+                                </div>
+                            </transition>
+                        </form>
+                    </div>
+                </section>
+            </transition>
+
+            <!-- TAB 2: LIVE ROSTER -->
+            <transition name="fade" mode="out-in">
+                <section v-show="activeTab === 2">
+                    
+                    <!-- Search & Filter Bar -->
+                    <div class="mb-6 space-y-4">
+                        <div class="flex justify-between items-end cursor-pointer select-none group" @click="isGridView = !isGridView">
+                            <div class="flex items-center gap-2">
+                                <h2 class="text-2xl font-black text-white tracking-tight transition-theme group-hover:text-theme">Active Roster</h2>
+                                <svg v-if="!isGridView" class="w-5 h-5 text-neutral-500 transition-theme group-hover:text-theme" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                                <svg v-else class="w-5 h-5 text-neutral-500 transition-theme group-hover:text-theme" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                            </div>
+                            <div class="bg-card border border-[#333] px-4 py-2 rounded-xl flex items-center">
+                                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-2"></div>
+                                <span class="text-sm font-bold text-neutral-300">{{ activePlayersList.length }} Total</span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2 items-center bg-card p-2 rounded-xl border border-borderline">
+                            <div class="relative flex-grow">
+                                <svg class="w-5 h-5 absolute left-3 top-2.5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                <input type="text" v-model="searchQuery" placeholder="Search by name, village or mobile..." class="w-full pl-10 pr-4 py-2 bg-[#1a1a1a] text-white rounded-lg border border-[#333] focus:border-theme outline-none transition-theme text-sm">
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                            <button @click="filterMode = 'all'" :class="filterMode === 'all' ? 'bg-theme text-white border-theme' : 'bg-card text-neutral-400 border-[#333]'" class="px-3 py-1.5 rounded-lg border text-xs font-bold shrink-0 transition-theme">All Members</button>
+                            <button @click="filterMode = 'expiring'" :class="filterMode === 'expiring' ? 'bg-amber-600 text-white border-amber-500' : 'bg-card text-neutral-400 border-[#333]'" class="px-3 py-1.5 rounded-lg border text-xs font-bold shrink-0 transition-theme">Expiring (≤ 2 days)</button>
+                            <button @click="filterMode = 'defaulters'" :class="filterMode === 'defaulters' ? 'bg-red-600 text-white border-red-500' : 'bg-card text-neutral-400 border-[#333]'" class="px-3 py-1.5 rounded-lg border text-xs font-bold shrink-0 transition-theme">Defaulters</button>
+                            <button @click="filterMode = 'offline'" v-if="offlineQueue.length > 0" :class="filterMode === 'offline' ? 'bg-blue-600 text-white border-blue-500' : 'bg-card text-neutral-400 border-[#333]'" class="px-3 py-1.5 rounded-lg border text-xs font-bold shrink-0 transition-theme">Pending Sync</button>
+                        </div>
+                    </div>
+
+                    <div v-if="isAppLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <div v-for="i in 8" :key="i" class="bg-card rounded-2xl border border-borderline p-4 flex items-center animate-pulse h-[88px]">
+                            <div class="w-14 h-14 rounded-full bg-[#222] shrink-0"></div>
+                            <div class="ml-4 flex-grow space-y-2">
+                                <div class="h-4 bg-[#222] rounded w-3/4"></div>
+                                <div class="h-3 bg-[#1a1a1a] rounded w-1/2"></div>
+                            </div>
+                            <div class="w-12 h-10 rounded-lg bg-[#222] ml-2 shrink-0"></div>
+                        </div>
+                    </div>
+
+                    <div v-else>
+                        <transition-group v-if="!isGridView" name="list" tag="div" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 overflow-hidden">
+                            <div v-for="player in filteredPlayersList" :key="player.mobileNumber" class="relative group rounded-2xl bg-[#111] overflow-hidden">
+                                
+                                <!-- Background Actions for Swipe -->
+                                <div class="absolute inset-y-0 left-0 bg-[#064e3b] w-1/2 flex items-center px-4">
+                                    <svg class="w-6 h-6 text-[#34d399]" fill="currentColor" viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>
+                                </div>
+                                <div class="absolute inset-y-0 right-0 bg-[#166534] w-1/2 flex items-center justify-end px-4">
+                                    <svg class="w-6 h-6 text-[#4ade80]" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                </div>
+
+                                <!-- The Draggable Card -->
+                                <div class="bg-card border border-borderline overflow-hidden cursor-pointer hover:border-[#444] transition-all relative flex flex-col h-full z-10 w-full"
+                                     @click="openDetail(player)"
+                                     @touchstart="startSwipe($event, player)" 
+                                     @touchmove="moveSwipe($event, player)" 
+                                     @touchend="endSwipe($event, player)"
+                                     :style="{ transform: `translateX(${player.swipeX || 0}px)`, transition: player.isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }">
+                                    <div class="h-1 w-full transition-colors duration-300" :class="player.colorState"></div>
+                                    <div class="p-4 flex items-center flex-grow">
+                                        <div class="relative w-14 h-14 shrink-0" @click.stop="openLightbox(player.imageLink)">
+                                            <img :src="player.imageLink" loading="lazy" class="w-14 h-14 rounded-full object-cover border border-[#333] group-hover:scale-105 transition-transform pointer-events-none">
+                                        </div>
+                                        <div class="ml-4 flex-grow truncate">
+                                            <div class="flex items-center gap-2">
+                                                <h3 class="font-bold text-white truncate text-lg">{{ player.name }}</h3>
+                                                <svg v-if="player.isOffline" class="w-4 h-4 text-theme" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5z"/></svg>
+                                            </div>
+                                            <p class="text-xs font-medium text-neutral-500 mt-0.5">{{ player.village }}</p>
+                                        </div>
+                                        <div class="shrink-0 flex flex-col items-center justify-center px-3 py-1.5 rounded-lg ml-2 border" :class="player.badgeBgClass">
+                                            <span class="text-lg font-black leading-none" :class="player.badgeTextClass">{{ player.daysRemaining }}</span>
+                                            <span class="text-[9px] font-bold uppercase mt-0.5 opacity-80" :class="player.badgeTextClass">Days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </transition-group>
+
+                        <transition-group v-else name="list" tag="div" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                            <div v-for="player in filteredPlayersList" :key="'grid-'+player.mobileNumber" @click="openDetail(player)" class="bg-card rounded-2xl border border-borderline overflow-hidden cursor-pointer hover:border-theme transition-theme duration-300 h-32 relative group">
+                                <img :src="player.imageLink" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                <div v-if="player.isOffline" class="absolute top-2 left-2 bg-theme rounded-full p-1 shadow-lg">
+                                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5z"/></svg>
+                                </div>
+                            </div>
+                        </transition-group>
+                    </div>
+
+                </section>
+            </transition>
+
+            <!-- TAB 3: AUDIT -->
+            <transition name="fade" mode="out-in">
+                <section v-show="activeTab === 3" class="max-w-2xl mx-auto">
+                    <div class="bg-card rounded-3xl border border-borderline p-8 md:p-10 transition-theme">
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4">
+                            <h2 class="text-2xl font-black text-white tracking-tight">Ledger Audit</h2>
+                            <div class="flex gap-2 w-full sm:w-auto">
+                                <button @click="exportCSV" class="bg-[#111] hover:bg-[#222] border border-[#333] px-3 py-3 rounded-xl flex items-center justify-center text-neutral-300 transition-colors tooltip" title="Download Roster (CSV)">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                </button>
+                                <div class="relative w-full sm:w-48">
+                                    <button @click="auditDropdownOpen = !auditDropdownOpen" class="w-full bg-[#1a1a1a] border border-[#333] px-4 py-3 rounded-xl flex justify-between items-center text-white font-bold text-sm">
+                                        {{ selectedAuditMonth || 'Loading...' }}
+                                        <svg class="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </button>
+                                    <transition name="slide-down">
+                                        <div v-if="auditDropdownOpen" class="absolute z-50 mt-2 w-full bg-card border border-[#333] rounded-xl shadow-2xl overflow-hidden">
+                                            <button v-for="month in availableMonths" :key="month" @click="selectAuditMonth(month)" class="w-full text-left px-4 py-3 text-sm text-neutral-300 hover:bg-[#1a1a1a] hover:text-white transition-colors border-b border-[#222] last:border-0 font-medium">
+                                                {{ month }}
+                                            </button>
+                                        </div>
+                                    </transition>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-3xl p-10 text-center shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#111] to-black border border-[#222]">
+                            <div v-if="isAppLoading" class="animate-pulse flex flex-col items-center">
+                                <div class="h-4 w-32 bg-[#222] rounded mb-6"></div>
+                                <div class="h-16 w-48 bg-[#222] rounded-lg"></div>
+                            </div>
+                            <div v-else class="relative z-10 flex flex-col items-center">
+                                <h4 class="text-neutral-500 font-bold tracking-widest uppercase text-xs mb-4">Gross Collected</h4>
+                                <div class="text-6xl md:text-7xl font-black tabular-nums tracking-tighter text-white">
+                                    <span class="text-4xl mr-1 font-medium text-theme transition-theme">₹</span>{{ formatCurrency(activeAuditData.totalFeeCollection) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </transition>
+        </main>
+
+        <!-- Payment Gateway Modal -->
+        <transition name="fade">
+            <div v-if="showPaymentModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+                <div class="bg-card border border-theme rounded-3xl w-full max-w-sm overflow-hidden transform transition-all shadow-[0_0_30px_var(--theme-light)] relative">
+                    
+                    <button v-if="paymentMode === 'select'" @click="showPaymentModal = false" class="absolute top-4 right-4 text-neutral-500 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                    
+                    <div class="p-8 text-center" v-if="paymentMode === 'select'">
+                        <div class="w-16 h-16 rounded-full bg-theme/20 flex items-center justify-center mx-auto mb-4 border border-theme/50 text-theme">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-black text-white mb-2">Payment Required</h3>
+                        <p class="text-neutral-400 text-sm mb-8">How is <span class="text-white font-bold">{{ form.name }}</span> paying <span class="text-theme font-bold">₹{{ form.fee }}</span>?</p>
+                        
+                        <div class="space-y-3">
+                            <button @click="processPayment('online')" class="w-full bg-theme text-white font-bold py-4 rounded-xl shadow-[0_0_15px_var(--theme-light)] transition-transform hover:scale-[1.02] flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                Generate Online QR
+                            </button>
+                            <button @click="processPayment('cash')" class="w-full bg-[#1a1a1a] border border-[#333] text-white hover:bg-[#222] font-bold py-4 rounded-xl transition-colors flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                Cash Received
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-8 text-center" v-if="paymentMode === 'online'">
+                        <h3 class="text-lg font-bold text-neutral-300 mb-6">Scan with any UPI App</h3>
+                        <div class="bg-white p-3 rounded-2xl inline-block mb-6 shadow-xl border-4 border-theme">
+                            <img :src="generatedQrUrl" loading="lazy" class="w-48 h-48 rounded-lg">
+                        </div>
+                        <p class="text-theme font-black text-3xl mb-8">₹ {{ form.fee }}</p>
+                        
+                        <div class="flex gap-3">
+                            <button @click="cancelPayment" class="flex-1 bg-[#1a1a1a] border border-[#333] text-neutral-400 hover:text-white font-bold py-3.5 rounded-xl transition-colors">Cancel</button>
+                            <button @click="finalizeSubmission" class="flex-1 bg-white text-black hover:bg-neutral-200 font-bold py-3.5 rounded-xl transition-colors flex justify-center items-center">
+                                Confirm Paid
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- Lightbox -->
+        <transition name="fade">
+            <div v-if="lightboxUrl" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md" @click="lightboxUrl = null">
+                <button class="absolute top-6 right-6 text-white hover:text-theme transition-theme p-2" @click="lightboxUrl = null">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                <img :src="lightboxUrl" loading="lazy" class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl ring-1 ring-borderline" @click.stop>
+            </div>
+        </transition>
+
+        <!-- Detail Modal -->
+        <transition name="fade">
+            <div v-if="selectedPlayer" class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm" @click="closeDetailModal">
+                <div class="bg-card border border-borderline rounded-3xl w-full max-w-md overflow-hidden transform transition-all shadow-2xl" @click.stop>
+                    <div class="relative bg-gradient-to-b from-[#1a1a1a] to-card pt-10 pb-8 flex flex-col items-center border-b border-[#222]">
+                        <img :src="selectedPlayer.imageLink" loading="lazy" @click="openLightbox(selectedPlayer.imageLink)" class="w-24 h-24 rounded-full border-4 border-surface object-cover shadow-lg cursor-pointer hover:opacity-80 transition-opacity">
+                        <h3 class="text-2xl font-black text-white mt-4">{{ selectedPlayer.name }}</h3>
+                        <p class="text-neutral-400 font-medium text-sm mt-1">{{ selectedPlayer.mobileNumber }} • {{ selectedPlayer.village }}</p>
+                    </div>
+                    
+                    <div class="flex gap-3 px-6 py-4 border-b border-[#222]">
+                        <a :href="'tel:' + selectedPlayer.mobileNumber" class="flex-1 bg-[#064e3b]/40 hover:bg-[#064e3b]/80 text-[#34d399] border border-[#047857]/50 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm transition-all">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>
+                            Call
+                        </a>
+                        <a :href="'https://wa.me/' + formatWhatsApp(selectedPlayer.mobileNumber)" target="_blank" class="flex-1 bg-[#166534]/40 hover:bg-[#166534]/80 text-[#4ade80] border border-[#15803d]/50 py-2.5 rounded-xl flex items-center justify-center font-bold text-sm transition-all">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                            WhatsApp
+                        </a>
+                    </div>
+                    <div class="px-6 py-4 grid gap-1 border-b border-[#222]">
+                        <div class="flex justify-between items-center py-3 border-b border-[#222]">
+                            <span class="text-neutral-500 text-xs font-bold uppercase tracking-wider">Current Fee</span>
+                            <span class="font-bold text-neutral-200">₹ {{ selectedPlayer.fee || 0 }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-3 border-b border-[#222]">
+                            <span class="text-neutral-500 text-xs font-bold uppercase tracking-wider">Last Payment</span>
+                            <div class="flex items-center gap-1.5">
+                                <span v-if="selectedPlayer.paymentMethod === 'UPI'" class="px-2.5 py-1 rounded-lg bg-blue-900/30 text-blue-400 text-xs font-bold border border-blue-800">Online UPI</span>
+                                <span v-else-if="selectedPlayer.paymentMethod === 'Cash'" class="px-2.5 py-1 rounded-lg bg-emerald-900/30 text-emerald-400 text-xs font-bold border border-emerald-800">Cash Handed</span>
+                                <span v-else-if="selectedPlayer.paymentMethod === 'Free'" class="px-2.5 py-1 rounded-lg bg-neutral-800 text-neutral-400 text-xs font-bold border border-neutral-700">Free Tier</span>
+                                <span v-else class="px-2.5 py-1 rounded-lg bg-[#222] text-neutral-500 text-xs font-bold border border-[#333]">Not Tracked</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center py-3 border-b border-[#222]">
+                            <span class="text-neutral-500 text-xs font-bold uppercase tracking-wider">Join Date</span>
+                            <span class="font-bold text-neutral-200">{{ selectedPlayer.dateOfJoining }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-3 border-b border-[#222]">
+                            <span class="text-neutral-500 text-xs font-bold uppercase tracking-wider">Expire Date</span>
+                            <span class="font-bold text-neutral-200">{{ selectedPlayer.endDateOfFee }}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-3">
+                            <span class="text-neutral-500 text-xs font-bold uppercase tracking-wider">Status</span>
+                            <span class="font-black" :class="selectedPlayer.textStatusClass">{{ selectedPlayer.daysRemaining }} Days Left</span>
+                        </div>
+                    </div>
+                    <div class="p-6 grid gap-3">
+                        <button v-if="selectedPlayer.daysRemaining <= 0" @click="deactivatePlayer(selectedPlayer)" :disabled="isDeactivating" class="w-full bg-[#3f1616] text-[#fca5a5] hover:bg-[#591c1c] border border-[#7f1d1d] font-bold py-3.5 px-4 rounded-xl transition-all flex justify-center items-center">
+                            <span v-if="!isDeactivating">Terminate User</span>
+                            <div v-else class="w-5 h-5 spinner border-[#fca5a5] border-t-transparent"></div>
+                        </button>
+                        <button @click="closeDetailModal" class="w-full bg-[#222] text-neutral-300 hover:bg-[#333] font-bold py-3.5 px-4 rounded-xl transition-colors">Close</button>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+    </div>
+
+    <!-- PWA Service Worker & Security Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Restrictions
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.addEventListener('dragstart', e => e.preventDefault());
+            const preventClipboard = (e) => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault(); };
+            ['copy', 'cut', 'paste'].forEach(evt => document.addEventListener(evt, preventClipboard));
+            document.addEventListener('keydown', e => {
+                const key = e.key.toLowerCase();
+                if ((e.ctrlKey || e.metaKey) && key === 'a') { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault(); }
+                if ((e.ctrlKey || e.metaKey) && (key === '=' || key === '-' || key === '+')) e.preventDefault();
+                if (key === 'f12') e.preventDefault(); 
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'j', 'c'].includes(key)) e.preventDefault(); 
+                if ((e.ctrlKey || e.metaKey) && key === 'u') e.preventDefault(); 
+            }, { passive: false });
+            document.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false });
+
+            // PWA Service Worker Registration
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW Error:', err));
+            }
+        });
+    </script>
+
+    <!-- App Logic -->
+    <script>
+        const { createApp, ref, computed, watch, onMounted } = Vue;
+
+        dayjs.extend(window.dayjs_plugin_utc);
+        dayjs.extend(window.dayjs_plugin_timezone);
+        dayjs.extend(window.dayjs_plugin_customParseFormat);
+        dayjs.tz.setDefault("Asia/Kolkata");
+        function getISTToday() { return dayjs().tz("Asia/Kolkata"); }
+
+        const APP_MODES = {
+            'Badminton': { gasUrl: "https://script.google.com/macros/s/AKfycbwjf9V1IxO2NfYNvsN_F-zNvMrFCD0XUHlJ3ooa1nm8filo-r7h27rjdlidJSQUNL8lrw/exec", storagePrefix: "rajstadium_", category: "Badminton" },
+            'Gym': { gasUrl: "https://script.google.com/macros/s/AKfycbwb57tr5gNyYgnyB_QrY55Elgs7kdcg-qHxqi079q6O5K2JLzT-0qYb1iZA-_T2SSAPkA/exec", storagePrefix: "rajgym_", category: "Gym" }
+        };
+
+        const avatars = [
+            "https://ik.imagekit.io/5lz94dan6e/_%20(2).jpeg?updatedAt=1775535282674",
+            "https://ik.imagekit.io/5lz94dan6e/%E2%98%86.jpeg?updatedAt=1775535282661",
+            "https://ik.imagekit.io/5lz94dan6e/_%20(1).jpeg?updatedAt=1775535282601",
+            "https://ik.imagekit.io/5lz94dan6e/Xeno%20Goku%20pfp.jpeg?updatedAt=1775535282589",
+            "https://ik.imagekit.io/5lz94dan6e/_%E2%99%94_%20____%20_____%20_%E2%99%94_.jpeg?updatedAt=1775535282517",
+            "https://ik.imagekit.io/5lz94dan6e/%E2%9D%9D%20____%20%E1%B5%95%CC%88%20%E0%B3%AB%CB%9A%E2%88%97_.jpeg?updatedAt=1775535282501"
+        ];
+
+        const app = createApp({
+            setup() {
+                const activeMode = ref(localStorage.getItem('raj_active_mode') || 'Badminton');
+                const config = computed(() => APP_MODES[activeMode.value]);
+
+                const activeTab = ref(1);
+                const isAppLoading = ref(true);
+                const isSyncing = ref(false); 
+                const isSubmitting = ref(false);
+                const isDeactivating = ref(false);
+                const isCheckingUser = ref(false);
+                const isGridView = ref(false);
+                
+                const isOnline = ref(navigator.onLine);
+                const offlineQueue = ref([]);
+
+                const searchQuery = ref('');
+                const filterMode = ref('all');
+
+                // PWA Install State
+                const showInstallBanner = ref(false);
+                const installPlatform = ref('');
+
+                const checkInstallBanner = () => {
+                    if (localStorage.getItem('raj_dismissed_install') === 'true') return;
+                    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return;
+
+                    const ua = window.navigator.userAgent;
+                    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+                    
+                    if (isIOS) {
+                        installPlatform.value = 'ios';
+                        setTimeout(() => showInstallBanner.value = true, 2000);
+                    } else if (window.globalDeferredPrompt) {
+                        installPlatform.value = 'android';
+                        setTimeout(() => showInstallBanner.value = true, 1000);
+                    }
+                };
+
+                window.addEventListener('pwa-prompt-ready', () => {
+                    if (localStorage.getItem('raj_dismissed_install') !== 'true') {
+                        installPlatform.value = 'android';
+                        setTimeout(() => showInstallBanner.value = true, 1000);
+                    }
+                });
+
+                const installPWA = async () => {
+                    if (!window.globalDeferredPrompt) return;
+                    window.globalDeferredPrompt.prompt();
+                    const { outcome } = await window.globalDeferredPrompt.userChoice;
+                    if (outcome === 'accepted') { showInstallBanner.value = false; }
+                    window.globalDeferredPrompt = null;
+                };
+
+                const dismissInstall = () => {
+                    showInstallBanner.value = false;
+                    localStorage.setItem('raj_dismissed_install', 'true');
+                };
+
+                const toasts = ref([]);
+                let toastId = 0;
+                const showToast = (msg, type = 'success') => {
+                    const id = toastId++;
+                    toasts.value.push({ id, msg, type });
+                    setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id); }, 3000);
+                };
+
+                const sheet1 = ref([]);
+                const sheet2 = ref([]);
+
+                const updateCache = () => {
+                    localStorage.setItem(`${config.value.storagePrefix}players`, JSON.stringify(sheet1.value));
+                    localStorage.setItem(`${config.value.storagePrefix}ledger`, JSON.stringify(sheet2.value));
+                };
+
+                const loadInitialData = async () => {
+                    const cachedPlayers = localStorage.getItem(`${config.value.storagePrefix}players`);
+                    const cachedLedger = localStorage.getItem(`${config.value.storagePrefix}ledger`);
+                    
+                    const cachedQueue = localStorage.getItem(`${config.value.storagePrefix}offline_queue`);
+                    offlineQueue.value = cachedQueue ? JSON.parse(cachedQueue) : [];
+
+                    if (cachedPlayers && cachedLedger) {
+                        sheet1.value = JSON.parse(cachedPlayers);
+                        sheet2.value = JSON.parse(cachedLedger);
+                        isAppLoading.value = false; 
+                        if (isOnline.value) processOfflineQueue();
+                        else forceSyncData(true);
+                    } else {
+                        isAppLoading.value = true;
+                        if(isOnline.value) {
+                            await forceSyncData(false);
+                        } else { 
+                            showToast("Offline & No Cache", "error"); 
+                            isAppLoading.value = false; 
+                        }
+                    }
+                };
+
+                const forceSyncData = async (silent = false) => {
+                    // FIX: Make sure if offline or already syncing, we disable the loading lock
+                    if (isSyncing.value || !isOnline.value) {
+                        isAppLoading.value = false; 
+                        return; 
+                    }
+                    isSyncing.value = true;
+                    const modeAtRequestTime = activeMode.value; 
+                    try {
+                        const response = await fetch(APP_MODES[modeAtRequestTime].gasUrl);
+                        const result = await response.json();
+                        if (activeMode.value !== modeAtRequestTime) return;
+                        if (result.status === 'success') {
+                            sheet1.value = result.data.sheet1 || [];
+                            sheet2.value = result.data.sheet2 || [];
+                            updateCache(); 
+                            if (!silent) showToast(`${modeAtRequestTime} Synced`);
+                        } else if (!silent) showToast('Sync Failed', 'error');
+                    } catch (e) { 
+                        if (!silent) showToast('Network Error', 'error'); 
+                    } finally { 
+                        if (activeMode.value === modeAtRequestTime) {
+                            isSyncing.value = false; 
+                        }
+                        // FIX: Forces the loading screen to vanish even if it's the first empty load
+                        isAppLoading.value = false; 
+                    }
+                };
+
+                const toggleMode = async () => {
+                    if(isSyncing.value || isSubmitting.value || isDeactivating.value) { showToast("Action in progress", "error"); return; }
+                    activeMode.value = activeMode.value === 'Badminton' ? 'Gym' : 'Badminton';
+                    localStorage.setItem('raj_active_mode', activeMode.value);
+                    sheet1.value = []; sheet2.value = [];
+                    isAppLoading.value = true; activeTab.value = 1; 
+                    showToast(`Switched to ${activeMode.value}`);
+                    await loadInitialData();
+                };
+
+                const formState = ref('hidden'); 
+                const showCustomPfpInput = ref(false);
+                const lightboxUrl = ref(null);
+                
+                const form = ref({ mobileNumber: '', name: '', village: '', fee: 500, pfp: '', doj: '', edf: '', paymentMethod: '' });
+
+                const resetFormDates = () => {
+                    form.value.doj = getISTToday().format('YYYY-MM-DD');
+                    form.value.edf = getISTToday().add(1, 'month').format('YYYY-MM-DD');
+                };
+
+                watch(() => form.value.doj, (newDoj) => { if(newDoj) form.value.edf = dayjs(newDoj).add(1, 'month').format('YYYY-MM-DD'); });
+
+                let lookupTimeout;
+                const onMobileInput = () => {
+                    clearTimeout(lookupTimeout);
+                    const numRaw = form.value.mobileNumber.trim();
+                    const cleanNum = numRaw.replace(/\D/g, ''); 
+                    if(cleanNum.length < 10) { clearTimeout(lookupTimeout); formState.value = 'hidden'; isCheckingUser.value = false; return; }
+                    
+                    isCheckingUser.value = true;
+                    lookupTimeout = setTimeout(() => {
+                        const existing = sheet1.value.find(p => String(p.mobileNumber).trim() === numRaw || String(p.mobileNumber).replace(/\D/g, '') === cleanNum);
+                        if(existing) {
+                            form.value.name = existing.name; form.value.village = existing.village; form.value.pfp = existing.imageLink || '';
+                            if(!avatars.includes(form.value.pfp)) showCustomPfpInput.value = true;
+                            formState.value = existing.status ? 'active' : 'deactivated'; 
+                        } else {
+                            form.value.name = ''; form.value.village = ''; form.value.pfp = ''; showCustomPfpInput.value = false;
+                            formState.value = 'new'; 
+                        }
+                        isCheckingUser.value = false;
+                    }, 500);
+                };
+
+                const showPaymentModal = ref(false);
+                const paymentMode = ref('select'); 
+                const generatedQrUrl = ref('');
+
+                const initiateSubmission = () => {
+                    if(form.value.fee > 0) {
+                        showPaymentModal.value = true;
+                        paymentMode.value = 'select';
+                    } else {
+                        form.value.paymentMethod = 'Free';
+                        executePayload();
+                    }
+                };
+
+                const processPayment = (type) => {
+                    if (type === 'cash') {
+                        form.value.paymentMethod = 'Cash'; 
+                        showPaymentModal.value = false;
+                        executePayload();
+                    } else if (type === 'online') {
+                        paymentMode.value = 'online';
+                        const tn = encodeURIComponent(`${form.value.name}-${form.value.mobileNumber}-${form.value.village}-${config.value.category}`);
+                        const upiLink = `upi://pay?pa=ujjawalmalik963@okicici&pn=Raj%20Stadium&am=${form.value.fee}&cu=INR&tn=${tn}`;
+                        generatedQrUrl.value = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiLink)}&color=000000&bgcolor=ffffff`;
+                    }
+                };
+
+                const cancelPayment = () => { showPaymentModal.value = false; };
+                
+                const finalizeSubmission = () => {
+                    form.value.paymentMethod = 'UPI'; 
+                    showPaymentModal.value = false;
+                    executePayload();
+                };
+
+                const executePayload = async () => {
+                    isSubmitting.value = true;
+                    const finalPfp = form.value.pfp || avatars[Math.floor(Math.random() * avatars.length)];
+                    const payloadObj = {
+                        mobileNumber: form.value.mobileNumber.trim(), name: form.value.name.trim(), village: form.value.village.trim(),
+                        category: config.value.category, fee: Number(form.value.fee),
+                        paymentMethod: form.value.paymentMethod, 
+                        dateOfJoining: dayjs.tz(form.value.doj, "YYYY-MM-DD", "Asia/Kolkata").format('DD/MM/YYYY'), 
+                        endDateOfFee: dayjs.tz(form.value.edf, "YYYY-MM-DD", "Asia/Kolkata").format('DD/MM/YYYY'),
+                        imageLink: finalPfp, dateKey: getISTToday().format('MMMM YYYY'), status: true, isOffline: !isOnline.value
+                    };
+
+                    const payload = { action: "upsertPlayer", data: payloadObj, modeContext: activeMode.value };
+
+                    if (!isOnline.value) {
+                        offlineQueue.value.push(payload);
+                        localStorage.setItem(`${config.value.storagePrefix}offline_queue`, JSON.stringify(offlineQueue.value));
+                        
+                        applyOptimisticUpdate(payloadObj);
+                        showToast('Saved Offline. Will sync when online.');
+                        resetFormPostSubmit();
+                        isSubmitting.value = false;
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch(config.value.gasUrl, { method: "POST", body: JSON.stringify(payload) });
+                        if (activeMode.value !== payload.modeContext) return; 
+
+                        if ((await res.json()).status === "success") {
+                            showToast('Processed Successfully');
+                            payloadObj.isOffline = false;
+                            applyOptimisticUpdate(payloadObj);
+                            resetFormPostSubmit();
+                        }
+                    } catch (e) { showToast('Transmission Failed', 'error'); } 
+                    finally { if (activeMode.value === payload.modeContext) isSubmitting.value = false; }
+                };
+
+                const applyOptimisticUpdate = (payloadObj) => {
+                    const existingIdx = sheet1.value.findIndex(p => p.mobileNumber === payloadObj.mobileNumber);
+                    if (existingIdx !== -1) sheet1.value[existingIdx] = { ...sheet1.value[existingIdx], ...payloadObj };
+                    else sheet1.value.push(payloadObj);
+
+                    if (payloadObj.fee > 0) {
+                        const existingMonth = sheet2.value.find(m => m.dateKey === payloadObj.dateKey);
+                        if (existingMonth) existingMonth.totalFeeCollection = Number(existingMonth.totalFeeCollection) + Number(payloadObj.fee);
+                        else sheet2.value.push({ dateKey: payloadObj.dateKey, totalFeeCollection: Number(payloadObj.fee) });
+                    }
+                    updateCache(); 
+                }
+
+                const resetFormPostSubmit = () => {
+                    form.value = { mobileNumber: '', name: '', village: '', fee: 500, pfp: '', doj: '', edf: '', paymentMethod: '' };
+                    resetFormDates(); formState.value = 'hidden'; activeTab.value = 2; showCustomPfpInput.value = false;
+                }
+
+                const processOfflineQueue = async () => {
+                    if (offlineQueue.value.length === 0 || !isOnline.value) return;
+                    showToast(`Syncing ${offlineQueue.value.length} pending entries...`);
+                    
+                    const q = [...offlineQueue.value];
+                    const successfulIds = [];
+
+                    for (let i = 0; i < q.length; i++) {
+                        const task = q[i];
+                        try {
+                            const taskConfig = APP_MODES[task.modeContext];
+                            const res = await fetch(taskConfig.gasUrl, { method: "POST", body: JSON.stringify(task) });
+                            if ((await res.json()).status === "success") {
+                                successfulIds.push(i);
+                                if(task.modeContext === activeMode.value) {
+                                    const pIdx = sheet1.value.findIndex(p => p.mobileNumber === task.data.mobileNumber);
+                                    if(pIdx !== -1) { sheet1.value[pIdx].isOffline = false; updateCache(); }
+                                }
+                            }
+                        } catch(e) {}
+                    }
+                    offlineQueue.value = offlineQueue.value.filter((_, idx) => !successfulIds.includes(idx));
+                    localStorage.setItem(`${config.value.storagePrefix}offline_queue`, JSON.stringify(offlineQueue.value));
+                    if(successfulIds.length > 0) showToast("Offline Sync Complete");
+                };
+
+                window.addEventListener('online', () => { isOnline.value = true; processOfflineQueue(); });
+                window.addEventListener('offline', () => isOnline.value = false);
+
+                const activePlayersList = computed(() => {
+                    return sheet1.value.filter(p => p.status === true).map(p => {
+                        let edf = dayjs.tz(p.endDateOfFee, "DD/MM/YYYY", "Asia/Kolkata").startOf('day');
+                        if (!edf.isValid()) edf = dayjs(p.endDateOfFee).tz("Asia/Kolkata").startOf('day');
+                        const days = edf.isValid() ? edf.diff(getISTToday().startOf('day'), 'day') : 0;
+
+                        let colorState = 'bg-emerald-500'; let badgeBgClass = 'bg-[#064e3b] border-[#047857]'; let badgeTextClass = 'text-[#34d399]'; let textStatusClass = 'text-emerald-500';
+                        if(days === 2) { colorState = 'bg-amber-500'; badgeBgClass = 'bg-[#78350f] border-[#b45309]'; badgeTextClass = 'text-amber-400'; textStatusClass = 'text-amber-500'; } 
+                        else if(days === 1) { colorState = 'bg-orange-500'; badgeBgClass = 'bg-[#7c2d12] border-[#c2410c]'; badgeTextClass = 'text-orange-400'; textStatusClass = 'text-orange-500'; } 
+                        else if(days <= 0) { colorState = 'bg-red-600'; badgeBgClass = 'bg-[#7f1d1d] border-[#b91c1c]'; badgeTextClass = 'text-red-400'; textStatusClass = 'text-red-500'; }
+                        return { ...p, daysRemaining: days, colorState, badgeBgClass, badgeTextClass, textStatusClass };
+                    }).sort((a, b) => a.daysRemaining - b.daysRemaining);
+                });
+
+                const filteredPlayersList = computed(() => {
+                    let list = activePlayersList.value;
+                    if (searchQuery.value) {
+                        const sq = searchQuery.value.toLowerCase();
+                        list = list.filter(p => p.name.toLowerCase().includes(sq) || p.mobileNumber.includes(sq) || p.village.toLowerCase().includes(sq));
+                    }
+                    if (filterMode.value === 'expiring') list = list.filter(p => p.daysRemaining <= 2 && p.daysRemaining > 0);
+                    if (filterMode.value === 'defaulters') list = list.filter(p => p.daysRemaining <= 0);
+                    if (filterMode.value === 'offline') list = list.filter(p => p.isOffline);
+                    return list;
+                });
+
+                const startX = ref(0);
+                const startSwipe = (e, player) => { startX.value = e.touches[0].clientX; player.isSwiping = true; };
+                const moveSwipe = (e, player) => { 
+                    const delta = e.touches[0].clientX - startX.value;
+                    if(Math.abs(delta) < 120) player.swipeX = delta; 
+                };
+                const endSwipe = (e, player) => {
+                    player.isSwiping = false;
+                    if(player.swipeX > 80) { window.location.href = 'tel:' + player.mobileNumber; }
+                    else if(player.swipeX < -80) { window.open('https://wa.me/91' + player.mobileNumber, '_blank'); }
+                    player.swipeX = 0; 
+                };
+
+                const selectedPlayer = ref(null);
+                const openDetail = (p) => { if(Math.abs(p.swipeX || 0) < 10) selectedPlayer.value = p; };
+                const closeDetailModal = () => { selectedPlayer.value = null; };
+                const openLightbox = (url) => { lightboxUrl.value = url; };
+                const formatWhatsApp = (num) => { let clean = String(num).replace(/\D/g, ''); return clean.length === 10 ? '91' + clean : clean; };
+
+                const deactivatePlayer = async (p) => {
+                    if(!isOnline.value) { showToast("Cannot terminate while offline", "error"); return; }
+                    isDeactivating.value = true;
+                    try {
+                        const res = await fetch(config.value.gasUrl, { method: "POST", body: JSON.stringify({ action: "deactivatePlayer", data: { mobileNumber: p.mobileNumber } }) });
+                        if((await res.json()).status === "success") { 
+                            showToast('Terminated'); 
+                            const pIdx = sheet1.value.findIndex(item => item.mobileNumber === p.mobileNumber);
+                            if (pIdx !== -1) sheet1.value[pIdx].status = false;
+                            updateCache(); closeDetailModal(); 
+                        } 
+                    } catch (e) {} 
+                    finally { isDeactivating.value = false; }
+                };
+
+                const exportCSV = () => {
+                    const headers = ["Name,Mobile,Village,Fee,Payment_Mode,Join_Date,Expiry_Date,Days_Left\n"];
+                    const rows = activePlayersList.value.map(p => `"${p.name}","${p.mobileNumber}","${p.village}",${p.fee},"${p.paymentMethod || 'N/A'}","${p.dateOfJoining}","${p.endDateOfFee}",${p.daysRemaining}`);
+                    const csvContent = "data:text/csv;charset=utf-8," + headers + rows.join("\n");
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `Raj_Stadium_${activeMode.value}_Roster.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+
+                const auditDropdownOpen = ref(false);
+                const selectedAuditMonth = ref('');
+                const availableMonths = computed(() => { const m = [...new Set(sheet2.value.map(a => a.dateKey))]; return m.length ? ['Overall', ...m] : ['No Data']; });
+                const activeAuditData = computed(() => { 
+                    if (selectedAuditMonth.value === 'Overall') return { totalFeeCollection: sheet2.value.reduce((sum, item) => sum + (Number(item.totalFeeCollection) || 0), 0) };
+                    return sheet2.value.find(a => a.dateKey === selectedAuditMonth.value) || { totalFeeCollection: 0 }; 
+                });
+                const formatCurrency = (val) => new Intl.NumberFormat('en-IN').format(val);
+                const selectAuditMonth = (m) => { selectedAuditMonth.value = m; auditDropdownOpen.value = false; };
+
+                onMounted(async () => {
+                    checkInstallBanner();
+                    resetFormDates();
+                    await loadInitialData(); 
+                    const cm = getISTToday().format('MMMM YYYY');
+                    if(availableMonths.value.includes(cm)) selectedAuditMonth.value = cm;
+                    else if(availableMonths.value.length && availableMonths.value[0] !== 'No Data') selectedAuditMonth.value = availableMonths.value[0];
+                });
+
+                return {
+                    activeMode, toggleMode, avatars, activeTab, isAppLoading, isSyncing, isSubmitting, isDeactivating, isCheckingUser, isGridView,
+                    toasts, form, formState, initiateSubmission, onMobileInput, showCustomPfpInput, lightboxUrl, openLightbox,
+                    filteredPlayersList, activePlayersList, selectedPlayer, formatWhatsApp, openDetail, closeDetailModal, deactivatePlayer, forceSyncData,
+                    auditDropdownOpen, selectedAuditMonth, availableMonths, activeAuditData, formatCurrency, selectAuditMonth,
+                    searchQuery, filterMode, isOnline, offlineQueue, startSwipe, moveSwipe, endSwipe, exportCSV,
+                    showPaymentModal, paymentMode, generatedQrUrl, processPayment, cancelPayment, finalizeSubmission,
+                    showInstallBanner, installPlatform, installPWA, dismissInstall
+                };
+            }
+        });
+        app.mount('#app');
+    </script>
 </body>
 </html>
